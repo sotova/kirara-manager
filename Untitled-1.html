@@ -4,189 +4,103 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>きらら作品管理ポータル+</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
   <style>
-    :root {
-      --accent: #ff6fa5;
-      --accent-strong: #ec4f8e;
-      --bg: #f6f8fc;
-      --bg-2: #ffffff;
-      --text: #222f40;
-      --muted: #5f6f84;
-      --border: #e2e8f3;
-      --ok: #1f9d62;
-      --want: #2e70d6;
-      --drop: #cc4456;
-      --shadow: 0 12px 34px rgba(40, 59, 91, 0.08);
-    }
-    body[data-theme="dark"] {
-      --bg: #121821;
-      --bg-2: #1b2431;
-      --text: #edf3ff;
-      --muted: #9aabc3;
-      --border: #2a3649;
-      --shadow: 0 14px 38px rgba(0, 0, 0, 0.35);
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Yu Gothic", "Meiryo", sans-serif; background: radial-gradient(circle at top, rgba(255,111,165,.12), transparent 40%), var(--bg); color: var(--text); }
-    .wrap { max-width: 1320px; margin: 0 auto; padding: 24px; }
-    .hero, .panel, .card, .metric { background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
-    .hero { padding: 18px; margin-bottom: 14px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-    .hero h1 { margin: 0 0 8px; font-size: 1.5rem; }
-    .hero p { margin: 0; color: var(--muted); }
-    .icon-btn { width: auto; display: inline-flex; align-items: center; gap: 7px; }
-    .panel { padding: 14px; margin-bottom: 14px; }
-    .control-grid { display: grid; grid-template-columns: 2fr repeat(6, 1fr); gap: 10px; }
-    .sub-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
-    input, select, button, textarea { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text); }
-    button { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; border: none; font-weight: 700; cursor: pointer; }
-    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
-    .metrics { display: grid; gap: 10px; grid-template-columns: repeat(4, 1fr); margin-bottom: 14px; }
-    .metric { padding: 12px; }
-    .metric p { margin: 0; color: var(--muted); font-size: 12px; }
-    .metric strong { font-size: 1.3rem; }
-    .meta-line { display: flex; justify-content: space-between; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
-    .card { overflow: hidden; cursor: pointer; transition: transform .15s; position: relative; }
-    .card:hover { transform: translateY(-4px); }
-    .thumb { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: #dfe7f4; }
-    .badge { position: absolute; top: 9px; right: 9px; font-size: 11px; color: #fff; padding: 4px 8px; border-radius: 999px; font-weight: 700; }
-    .status-read { background: var(--ok); }.status-want { background: var(--want); }.status-dropped { background: var(--drop); }
-    .card-body { padding: 10px; }
-    .title { font-weight: 700; margin: 0 0 6px; }
-    .sub { margin: 0; color: var(--muted); font-size: 12px; }
-    .modal { position: fixed; inset: 0; background: rgba(5,9,15,.65); display: none; align-items: center; justify-content: center; z-index: 20; }
-    .modal.show { display: flex; }
-    .dialog { width: min(780px, 95vw); max-height: 88vh; overflow: auto; background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
-    .dialog-head { display: flex; justify-content: space-between; align-items: center; }
-    .dialog-grid { display: grid; grid-template-columns: 190px 1fr; gap: 12px; }
-    .dialog img { width: 100%; border-radius: 12px; border: 1px solid var(--border); }
-    .small { color: var(--muted); font-size: 12px; }
-    .section-title { margin: 14px 0 6px; font-weight: 700; }
-    i[data-lucide] { width: 17px; height: 17px; vertical-align: -3px; }
-    @media (max-width: 980px) {
-      .control-grid { grid-template-columns: 1fr 1fr; }
-      .sub-controls, .metrics { grid-template-columns: 1fr 1fr; }
-      .dialog-grid { grid-template-columns: 1fr; }
-    }
+    :root { --accent:#ff6fa5; --accent-strong:#ec4f8e; --bg:#f6f8fc; --bg-2:#fff; --text:#222f40; --muted:#5f6f84; --border:#e2e8f3; --ok:#1f9d62; --want:#2e70d6; --drop:#cc4456; --shadow:0 12px 34px rgba(40,59,91,.08);}    
+    body[data-theme="dark"] { --bg:#121821; --bg-2:#1b2431; --text:#edf3ff; --muted:#9aabc3; --border:#2a3649; --shadow:0 14px 38px rgba(0,0,0,.35); }
+    *{box-sizing:border-box} body{margin:0;font-family:"Yu Gothic","Meiryo",sans-serif;background:radial-gradient(circle at top,rgba(255,111,165,.12),transparent 40%),var(--bg);color:var(--text)}
+    .wrap{max-width:1320px;margin:0 auto;padding:24px}.hero,.panel,.card,.metric,.detail-page{background:var(--bg-2);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+    .hero{padding:18px;margin-bottom:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}.hero h1{margin:0 0 8px;font-size:1.5rem}.hero p{margin:0;color:var(--muted)}
+    .icon-btn{width:auto;display:inline-flex;align-items:center;gap:7px}.panel{padding:14px;margin-bottom:14px}
+    .control-grid{display:grid;grid-template-columns:2fr repeat(7,1fr);gap:10px}.sub-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+    input,select,button,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);color:var(--text)}
+    button{background:linear-gradient(135deg,var(--accent),var(--accent-strong));color:#fff;border:none;font-weight:700;cursor:pointer}.secondary{background:transparent!important;color:var(--text)!important;border:1px solid var(--border)!important}
+    .metrics{display:grid;gap:10px;grid-template-columns:repeat(4,1fr);margin-bottom:14px}.metric{padding:12px}.metric p{margin:0;color:var(--muted);font-size:12px}.metric strong{font-size:1.3rem}
+    .meta-line{display:flex;justify-content:space-between;flex-wrap:wrap;color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+    .card{overflow:hidden;cursor:pointer;transition:transform .15s;position:relative}.card:hover{transform:translateY(-4px)}.thumb{width:100%;aspect-ratio:3/4;object-fit:cover;background:#dfe7f4}
+    .badge{position:absolute;top:9px;right:9px;font-size:11px;color:#fff;padding:4px 8px;border-radius:999px;font-weight:700}.status-read{background:var(--ok)}.status-want{background:var(--want)}.status-dropped{background:var(--drop)}
+    .card-body{padding:10px}.title{font-weight:700;margin:0 0 6px}.sub{margin:0;color:var(--muted);font-size:12px}
+    .detail-page{display:none;padding:16px;margin-top:14px}.detail-page.show{display:block}.detail-grid{display:grid;grid-template-columns:220px 1fr;gap:14px}.detail-page img{width:100%;border-radius:12px;border:1px solid var(--border)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.actions button{width:auto}.small{color:var(--muted);font-size:12px}.section-title{margin:14px 0 6px;font-weight:700}
+    .modal{position:fixed;inset:0;background:rgba(5,9,15,.65);display:none;align-items:center;justify-content:center;z-index:20}.modal.show{display:flex}.dialog{width:min(780px,95vw);max-height:88vh;overflow:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:16px}
+    @media (max-width:980px){.control-grid{grid-template-columns:1fr 1fr}.sub-controls,.metrics{grid-template-columns:1fr 1fr}.detail-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <section class="hero">
-      <div>
-        <h1><i data-lucide="sparkles"></i> まんがタイムきらら 管理サイト+</h1>
-        <p>見やすさ・管理しやすさを強化。進捗統計、ソート、クイック編集、テーマ切替対応。</p>
-      </div>
-      <button id="themeBtn" class="secondary icon-btn"><i data-lucide="moon-star"></i> テーマ切替</button>
-    </section>
-
-    <section class="panel">
-      <div class="control-grid">
-        <input id="searchInput" type="text" placeholder="タイトル・作者・レーベル検索" />
-        <select id="statusFilter"><option value="all">状態: 全て</option><option value="read">読了</option><option value="want">積み</option><option value="dropped">断念</option><option value="untracked">未登録</option></select>
-        <select id="sortSelect"><option value="title">並び: タイトル順</option><option value="dateDesc">並び: 新しい順</option><option value="dateAsc">並び: 古い順</option><option value="ratingDesc">並び: 高評価順</option></select>
-        <button id="viewToggleBtn" class="icon-btn"><i data-lucide="layers-3"></i> シリーズ表示</button>
-        <button id="openAnimeBtn" class="icon-btn"><i data-lucide="tv"></i> アニメ追加</button>
-        <button id="openManualMangaBtn" class="icon-btn"><i data-lucide="book-open-text"></i> 漫画追加</button>
-        <button id="openImportBtn" class="icon-btn"><i data-lucide="file-up"></i> JSON取込</button>
-      </div>
-      <div class="sub-controls">
-        <button id="exportBtn" class="secondary icon-btn"><i data-lucide="file-down"></i> JSON書出し</button>
-        <button id="openScrapeHelpBtn" class="secondary icon-btn"><i data-lucide="info"></i> 補足ヘルプ</button>
-        <button id="clearFilterBtn" class="secondary icon-btn"><i data-lucide="eraser"></i> 検索リセット</button>
-      </div>
-    </section>
-
-    <section class="metrics">
-      <article class="metric"><p>表示件数</p><strong id="mShown">0</strong></article>
-      <article class="metric"><p>読了率</p><strong id="mReadRate">0%</strong></article>
-      <article class="metric"><p>平均評価</p><strong id="mRating">-</strong></article>
-      <article class="metric"><p>登録総数</p><strong id="mTotal">0</strong></article>
-    </section>
-
+    <section class="hero"><div><h1><i data-lucide="sparkles"></i> まんがタイムきらら 管理サイト+</h1><p>管理・閲覧・絞り込みを快適化したローカル管理ツール。</p></div><button id="themeBtn" class="secondary icon-btn"><i data-lucide="moon-star"></i> テーマ切替</button></section>
+    <section class="panel"><div class="control-grid">
+      <input id="searchInput" type="text" placeholder="タイトル・作者・レーベル検索" />
+      <select id="statusFilter"><option value="all">状態: 全て</option><option value="read">読了</option><option value="want">積み</option><option value="dropped">断念</option><option value="untracked">未登録</option></select>
+      <select id="sortSelect"><option value="title">並び: タイトル順</option><option value="dateDesc">並び: 新しい順</option><option value="dateAsc">並び: 古い順</option><option value="ratingDesc">並び: 高評価順</option></select>
+      <button id="viewToggleBtn" class="icon-btn"><i data-lucide="layers-3"></i> シリーズ表示</button>
+      <button id="randomAddedBtn" class="icon-btn"><i data-lucide="shuffle"></i> 追加作品ランダム</button>
+      <button id="openAnimeBtn" class="icon-btn"><i data-lucide="tv"></i> アニメ追加</button>
+      <button id="openManualMangaBtn" class="icon-btn"><i data-lucide="book-open-text"></i> 漫画追加</button>
+      <button id="openImportBtn" class="icon-btn"><i data-lucide="file-up"></i> JSON取込</button>
+    </div><div class="sub-controls"><button id="exportBtn" class="secondary icon-btn"><i data-lucide="file-down"></i> JSON書出し</button><button id="openScrapeHelpBtn" class="secondary icon-btn"><i data-lucide="info"></i> 補足ヘルプ</button><button id="clearFilterBtn" class="secondary icon-btn"><i data-lucide="eraser"></i> 検索リセット</button></div></section>
+    <section class="metrics"><article class="metric"><p>表示件数</p><strong id="mShown">0</strong></article><article class="metric"><p>読了率</p><strong id="mReadRate">0%</strong></article><article class="metric"><p>平均評価</p><strong id="mRating">-</strong></article><article class="metric"><p>登録総数</p><strong id="mTotal">0</strong></article></section>
     <div class="meta-line panel"><span id="resultCount"></span><span class="small">ローカル保存のみ。データはブラウザ内に保存されます。</span></div>
     <main id="cards" class="grid"></main>
+    <section id="detailPage" class="detail-page"></section>
   </div>
-
-  <div class="modal" id="modal"><div class="dialog"><div class="dialog-head"><strong id="modalTitle"></strong><button id="closeModalBtn" class="secondary" style="width:auto;">閉じる</button></div><div id="modalBody"></div></div></div>
-
+  <div class="modal" id="modal"><div class="dialog"><strong id="modalTitle"></strong><div id="modalBody" style="margin-top:8px"></div><button id="closeModalBtn" class="secondary" style="margin-top:8px">閉じる</button></div></div>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     const STORAGE_KEYS={userState:"kirara_user_state_v3",customItems:"kirara_custom_items_v3",scrapedSeed:"kirara_scraped_seed_v3",theme:"kirara_theme_v1"};
-    const defaultSeed=[
-      { id:"gochiusa_01", type:"manga", title:"ご注文はうさぎですか？", volume:1, author:"Koi", label:"まんがタイムKRコミックス", summary:"ココアとラビットハウスの日常。", release_date:"2012-02-27", thumbnail:"https://via.placeholder.com/300x400?text=ごちうさ1" },
-      { id:"gochiusa_02", type:"manga", title:"ご注文はうさぎですか？", volume:2, author:"Koi", label:"まんがタイムKRコミックス", summary:"季節が進み、絆が深まる。", release_date:"2013-02-27", thumbnail:"https://via.placeholder.com/300x400?text=ごちうさ2" },
-      { id:"machikado_01", type:"manga", title:"まちカドまぞく", volume:1, author:"伊藤いづも", label:"まんがタイムKRコミックス", summary:"魔族少女と魔法少女のゆるい対決。", release_date:"2015-11-27", thumbnail:"https://via.placeholder.com/300x400?text=まちカド1" }
-    ];
-    let userState=JSON.parse(localStorage.getItem(STORAGE_KEYS.userState)||"{}");
-    let customItems=JSON.parse(localStorage.getItem(STORAGE_KEYS.customItems)||"[]");
-    let scrapedSeed=JSON.parse(localStorage.getItem(STORAGE_KEYS.scrapedSeed)||"[]");
-    let displayMode="series";
-    const byId=(id)=>document.getElementById(id);
-    const allItems=()=>[...defaultSeed,...scrapedSeed,...customItems];
+    const defaultSeed=[{id:"gochiusa_01",type:"manga",title:"ご注文はうさぎですか？",volume:1,author:"Koi",label:"まんがタイムKRコミックス",summary:"ココアとラビットハウスの日常。",release_date:"2012-02-27",thumbnail:"https://via.placeholder.com/300x400?text=ごちうさ1"},{id:"gochiusa_02",type:"manga",title:"ご注文はうさぎですか？",volume:2,author:"Koi",label:"まんがタイムKRコミックス",summary:"季節が進み、絆が深まる。",release_date:"2013-02-27",thumbnail:"https://via.placeholder.com/300x400?text=ごちうさ2"},{id:"machikado_01",type:"manga",title:"まちカドまぞく",volume:1,author:"伊藤いづも",label:"まんがタイムKRコミックス",summary:"魔族少女と魔法少女のゆるい対決。",release_date:"2015-11-27",thumbnail:"https://via.placeholder.com/300x400?text=まちカド1"}];
+    let userState=JSON.parse(localStorage.getItem(STORAGE_KEYS.userState)||"{}");let customItems=JSON.parse(localStorage.getItem(STORAGE_KEYS.customItems)||"[]");let scrapedSeed=JSON.parse(localStorage.getItem(STORAGE_KEYS.scrapedSeed)||"[]");let displayMode="series";
+    const byId=(id)=>document.getElementById(id), allItems=()=>[...defaultSeed,...scrapedSeed,...customItems];
     const save=()=>{localStorage.setItem(STORAGE_KEYS.userState,JSON.stringify(userState));localStorage.setItem(STORAGE_KEYS.customItems,JSON.stringify(customItems));localStorage.setItem(STORAGE_KEYS.scrapedSeed,JSON.stringify(scrapedSeed));};
     const getBadge=(s)=>s==="read"?["読了","status-read"]:s==="want"?["積み","status-want"]:s==="dropped"?["断念","status-dropped"]:["",""];
+    const applyTheme=()=>{document.body.dataset.theme=localStorage.getItem(STORAGE_KEYS.theme)||"light";lucide.createIcons();};
 
-    function applyTheme(){document.body.dataset.theme=localStorage.getItem(STORAGE_KEYS.theme)||"light";lucide.createIcons();}
-    function toggleTheme(){const next=document.body.dataset.theme==="dark"?"light":"dark";localStorage.setItem(STORAGE_KEYS.theme,next);applyTheme();}
+    function navigateToDetail(id){location.hash=`#detail=${encodeURIComponent(id)}`;}
+    function clearDetail(){byId("detailPage").classList.remove("show");byId("detailPage").innerHTML="";if(location.hash.startsWith("#detail=")) history.replaceState(null,"",location.pathname+location.search);}
+    function findItemById(id){return allItems().find(i=>i.id===id);}    
+    function relatedVolumes(item){if(item.type!=="manga") return [item]; return allItems().filter(i=>i.type==="manga"&&i.title===item.title).sort((a,b)=>(a.volume||0)-(b.volume||0));}
 
     function render(){
-      const search=byId("searchInput").value.trim().toLowerCase();
-      const statusFilter=byId("statusFilter").value;
-      const sort=byId("sortSelect").value;
-      const total=allItems().length;
-      let items=allItems().filter(item=>{
-        const s=(userState[item.id]?.status)||"untracked";
-        const matchSearch=[item.title,item.author,item.label].filter(Boolean).join(" ").toLowerCase().includes(search);
-        return matchSearch&&(statusFilter==="all"||s===statusFilter);
-      });
+      const search=byId("searchInput").value.trim().toLowerCase(),statusFilter=byId("statusFilter").value,sort=byId("sortSelect").value;const total=allItems().length;
+      let items=allItems().filter(item=>{const s=(userState[item.id]?.status)||"untracked";const q=[item.title,item.author,item.label].filter(Boolean).join(" ").toLowerCase();return q.includes(search)&&(statusFilter==="all"||s===statusFilter);});
       if(displayMode==="series"){const m=new Map();for(const item of items){if(item.type==="manga"){const k=`manga:${item.title}`;const p=m.get(k);if(!p||(item.volume||9999)<(p.volume||9999))m.set(k,item);}else m.set(`anime:${item.id}`,item);}items=[...m.values()];}
-      items.sort((a,b)=>{
-        if(sort==="title") return (a.title||"").localeCompare(b.title||"", "ja");
-        if(sort==="dateDesc") return (b.release_date||"").localeCompare(a.release_date||"");
-        if(sort==="dateAsc") return (a.release_date||"").localeCompare(b.release_date||"");
-        const ar=Number(userState[a.id]?.rating||0), br=Number(userState[b.id]?.rating||0); return br-ar;
-      });
-
-      const readCount=allItems().filter(i=>userState[i.id]?.status==="read").length;
-      const ratings=Object.values(userState).map(v=>Number(v.rating||0)).filter(v=>v>0);
-      byId("mShown").textContent=String(items.length);
-      byId("mTotal").textContent=String(total);
-      byId("mReadRate").textContent= total?`${Math.round((readCount/total)*100)}%`:"0%";
-      byId("mRating").textContent= ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):"-";
-      byId("resultCount").textContent=`表示 ${items.length} / 全${total} 件`;
-
-      const root=byId("cards"); root.innerHTML="";
-      for(const item of items){
-        const st=userState[item.id]?.status||"none"; const [label,klass]=getBadge(st);
-        const suffix=item.type==="anime"?"アニメ":displayMode==="volume"?`${item.volume||"-"}巻`:"シリーズ";
-        const rating=Number(userState[item.id]?.rating||0);
-        const card=document.createElement("article"); card.className="card"; card.onclick=()=>openDetail(item.id);
+      items.sort((a,b)=> sort==="title"?(a.title||"").localeCompare(b.title||"","ja"):sort==="dateDesc"?(b.release_date||"").localeCompare(a.release_date||""):sort==="dateAsc"?(a.release_date||"").localeCompare(b.release_date||""):Number(userState[b.id]?.rating||0)-Number(userState[a.id]?.rating||0));
+      const readCount=allItems().filter(i=>userState[i.id]?.status==="read").length;const ratings=Object.values(userState).map(v=>Number(v.rating||0)).filter(v=>v>0);
+      byId("mShown").textContent=String(items.length);byId("mTotal").textContent=String(total);byId("mReadRate").textContent=total?`${Math.round((readCount/total)*100)}%`:"0%";byId("mRating").textContent=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):"-";byId("resultCount").textContent=`表示 ${items.length} / 全${total} 件`;
+      const root=byId("cards");root.innerHTML="";
+      for(const item of items){const st=userState[item.id]?.status||"none";const [label,klass]=getBadge(st);const suffix=item.type==="anime"?"アニメ":displayMode==="volume"?`${item.volume||"-"}巻`:"シリーズ";const rating=Number(userState[item.id]?.rating||0);
+        const card=document.createElement("article");card.className="card";card.onclick=()=>navigateToDetail(item.id);
         card.innerHTML=`${label?`<div class="badge ${klass}">${label}</div>`:""}<img class="thumb" src="${item.thumbnail||"https://via.placeholder.com/300x400?text=No+Image"}" alt="${item.title}"><div class="card-body"><p class="title">${item.title}</p><p class="sub">${suffix} / ${item.author||item.air_date||"-"}</p><p class="sub">評価: ${rating?"★".repeat(rating)+"☆".repeat(5-rating):"未評価"}</p></div>`;
         root.appendChild(card);
       }
+      syncDetailByHash();lucide.createIcons();
+    }
+
+    function renderDetail(itemId){const item=findItemById(itemId); if(!item) return clearDetail(); const detail=byId("detailPage"); const st=userState[item.id]||{status:"none",rating:"0",comment:""};
+      const volumes=relatedVolumes(item); const nav=volumes.length>1?`<div class="actions">${volumes.map(v=>`<button class="secondary" onclick="navigateToDetail('${v.id}')">${v.volume||'-'}巻</button>`).join("")}</div>`:"";
+      detail.innerHTML=`<h2 style="margin-top:0">${item.title} ${item.type==='manga'&&item.volume?`${item.volume}巻`:''}</h2><div class="detail-grid"><img src="${item.thumbnail||"https://via.placeholder.com/300x400?text=No+Image"}"><div><p>区分: ${item.type==="anime"?"アニメ":"漫画"}</p><p>巻数: ${item.type==="manga"?(item.volume||"-"):"-"}</p><p>作者: ${item.author||"-"}</p><p>レーベル/放送: ${item.label||item.air_date||"-"}</p><p>発売日: ${item.release_date||"-"}</p><p>${item.summary||"-"}</p>${nav}</div></div><div class="section-title">管理情報</div><select id="editStatus"><option value="none">未選択</option><option value="read">読んだ・見た</option><option value="want">読みたい・見たい</option><option value="dropped">読んだけど続かなかった</option></select><select id="editRating"><option value="0">未評価</option><option value="5">★★★★★</option><option value="4">★★★★☆</option><option value="3">★★★☆☆</option><option value="2">★★☆☆☆</option><option value="1">★☆☆☆☆</option></select><textarea id="editComment" rows="4" placeholder="感想メモ">${st.comment||""}</textarea><div class="actions"><button id="saveStateBtn" class="icon-btn"><i data-lucide="save"></i> 保存</button><button id="backBtn" class="secondary">一覧へ戻る</button>${(customItems.some(c=>c.id===item.id)||scrapedSeed.some(c=>c.id===item.id))?'<button id="deleteBtn" class="secondary">この追加作品を削除</button>':''}</div>`;
+      detail.classList.add("show");byId("editStatus").value=st.status||"none";byId("editRating").value=st.rating||"0";
+      byId("saveStateBtn").onclick=()=>{userState[item.id]={status:byId("editStatus").value,rating:byId("editRating").value,comment:byId("editComment").value.trim()};save();render();};
+      byId("backBtn").onclick=clearDetail;
+      const del=byId("deleteBtn"); if(del) del.onclick=()=>{if(!confirm("この作品を削除しますか？")) return; customItems=customItems.filter(c=>c.id!==item.id); scrapedSeed=scrapedSeed.filter(c=>c.id!==item.id); delete userState[item.id]; save(); clearDetail(); render();};
       lucide.createIcons();
     }
 
+    function syncDetailByHash(){if(!location.hash.startsWith("#detail=")) return; const id=decodeURIComponent(location.hash.replace("#detail=","")); renderDetail(id);}    
     function openModal(title,body){byId("modalTitle").textContent=title;byId("modalBody").innerHTML=body;byId("modal").classList.add("show");lucide.createIcons();}
     function closeModal(){byId("modal").classList.remove("show");}
-    function openDetail(id){const item=allItems().find(i=>i.id===id); if(!item) return; const st=userState[id]||{status:"none",rating:"0",comment:""};
-      openModal(item.title,`<div class="dialog-grid"><img src="${item.thumbnail||"https://via.placeholder.com/300x400?text=No+Image"}"><div><p>区分: ${item.type==="anime"?"アニメ":"漫画"}</p><p>巻数: ${item.type==="manga"?(item.volume||"-"):"-"}</p><p>作者: ${item.author||"-"}</p><p>レーベル/放送: ${item.label||item.air_date||"-"}</p><p>発売日: ${item.release_date||"-"}</p><p>${item.summary||"-"}</p></div></div><div class="section-title">管理情報</div><select id="editStatus"><option value="none">未選択</option><option value="read">読んだ・見た</option><option value="want">読みたい・見たい</option><option value="dropped">読んだけど続かなかった</option></select><select id="editRating"><option value="0">未評価</option><option value="5">★★★★★</option><option value="4">★★★★☆</option><option value="3">★★★☆☆</option><option value="2">★★☆☆☆</option><option value="1">★☆☆☆☆</option></select><textarea id="editComment" rows="4" placeholder="感想メモ">${st.comment||""}</textarea><button id="saveStateBtn" class="icon-btn" style="margin-top:8px;"><i data-lucide="save"></i> 保存</button>`);
-      byId("editStatus").value=st.status||"none"; byId("editRating").value=st.rating||"0";
-      byId("saveStateBtn").onclick=()=>{userState[id]={status:byId("editStatus").value,rating:byId("editRating").value,comment:byId("editComment").value.trim()};save();render();};
-    }
     function openAddAnime(){openModal("アニメ追加",`<input id="animeTitle" placeholder="タイトル"><input id="animeAir" placeholder="放送時期"><textarea id="animeSummary" rows="4" placeholder="あらすじ"></textarea><input id="animeThumb" placeholder="サムネイルURL"><button id="saveAnimeBtn">追加</button>`);byId("saveAnimeBtn").onclick=()=>{const t=byId("animeTitle").value.trim();if(!t)return alert("タイトル必須");customItems.push({id:`anime_custom_${Date.now()}`,type:"anime",title:t,air_date:byId("animeAir").value.trim(),summary:byId("animeSummary").value.trim(),thumbnail:byId("animeThumb").value.trim()||"https://via.placeholder.com/300x400?text=Anime"});save();closeModal();render();};}
-    function openAddManga(){openModal("漫画追加",`<input id="mTitle" placeholder="タイトル"><input id="mVol" type="number" min="1" placeholder="巻数"><input id="mAuthor" placeholder="作者"><input id="mLabel" placeholder="レーベル"><input id="mDate" placeholder="YYYY-MM-DD"><textarea id="mSummary" rows="4" placeholder="あらすじ"></textarea><input id="mThumb" placeholder="サムネイルURL"><button id="saveMangaBtn">追加</button>`);byId("saveMangaBtn").onclick=()=>{const t=byId("mTitle").value.trim();if(!t)return alert("タイトル必須");customItems.push({id:`manga_custom_${Date.now()}`,type:"manga",title:t,volume:Number(byId("mVol").value)||1,author:byId("mAuthor").value.trim(),label:byId("mLabel").value.trim(),release_date:byId("mDate").value.trim(),summary:byId("mSummary").value.trim(),thumbnail:byId("mThumb").value.trim()||"https://via.placeholder.com/300x400?text=Manga"});save();closeModal();render();};}
+    function openAddManga(){openModal("漫画追加",`<input id="mTitle" placeholder="タイトル"><input id="mVol" type="number" min="1" placeholder="巻数"><input id="mAuthor" placeholder="作者"><input id="mLabel" placeholder="レーベル"><input id="mDate" type="date" placeholder="発売日"><textarea id="mSummary" rows="4" placeholder="あらすじ"></textarea><input id="mThumb" placeholder="サムネイルURL"><button id="saveMangaBtn">追加</button>`);byId("saveMangaBtn").onclick=()=>{const t=byId("mTitle").value.trim();if(!t)return alert("タイトル必須");customItems.push({id:`manga_custom_${Date.now()}`,type:"manga",title:t,volume:Number(byId("mVol").value)||1,author:byId("mAuthor").value.trim(),label:byId("mLabel").value.trim(),release_date:byId("mDate").value.trim(),summary:byId("mSummary").value.trim(),thumbnail:byId("mThumb").value.trim()||"https://via.placeholder.com/300x400?text=Manga"});save();closeModal();render();};}
+    function showRandomAdded(){const added=[...customItems,...scrapedSeed]; if(!added.length) return alert("追加作品がありません"); const picked=added[Math.floor(Math.random()*added.length)]; navigateToDetail(picked.id);}    
     function openImportJson(){openModal("JSON取込",`<p class="small">作品配列JSONを貼り付け。</p><textarea id="importText" rows="10"></textarea><button id="importBtn">取り込み</button>`);byId("importBtn").onclick=()=>{try{const rows=JSON.parse(byId("importText").value);if(!Array.isArray(rows)) throw new Error("配列ではありません");scrapedSeed=[...scrapedSeed,...rows.map((r,i)=>({...r,id:r.id||`import_${Date.now()}_${i}`}))];save();closeModal();render();}catch(e){alert(`JSONエラー: ${e.message}`);}};}
-    function exportJson(){const b=new Blob([JSON.stringify(allItems(),null,2)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="kirara_data_export.json";a.click();URL.revokeObjectURL(u);}
-    function openScrapeHelp(){openModal("使い方補足",`<ul><li>シリーズ表示/巻表示で閲覧単位を切替。</li><li>詳細画面からステータス・評価・感想を保存。</li><li>JSON取込で外部整備データをまとめて反映。</li><li>ソート+検索+状態フィルタで大量管理に対応。</li></ul>`);}
+    const exportJson=()=>{const b=new Blob([JSON.stringify(allItems(),null,2)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="kirara_data_export.json";a.click();URL.revokeObjectURL(u);};
+    const openScrapeHelp=()=>openModal("使い方補足",`<ul><li>追加作品は詳細ページから削除できます。</li><li>ランダムボタンで追加作品を1件表示できます。</li><li>詳細は別ページ表示で、同タイトルなら巻切替できます。</li></ul>`);
 
-    byId("searchInput").addEventListener("input",render); byId("statusFilter").addEventListener("change",render); byId("sortSelect").addEventListener("change",render);
+    byId("searchInput").addEventListener("input",render);byId("statusFilter").addEventListener("change",render);byId("sortSelect").addEventListener("change",render);
     byId("viewToggleBtn").addEventListener("click",()=>{displayMode=displayMode==="series"?"volume":"series";byId("viewToggleBtn").innerHTML=displayMode==="series"?'<i data-lucide="layers-3"></i> シリーズ表示':'<i data-lucide="book-copy"></i> 巻表示';render();});
-    byId("openAnimeBtn").addEventListener("click",openAddAnime); byId("openManualMangaBtn").addEventListener("click",openAddManga); byId("openImportBtn").addEventListener("click",openImportJson); byId("exportBtn").addEventListener("click",exportJson);
-    byId("openScrapeHelpBtn").addEventListener("click",openScrapeHelp); byId("clearFilterBtn").addEventListener("click",()=>{byId("searchInput").value="";byId("statusFilter").value="all";byId("sortSelect").value="title";render();});
-    byId("closeModalBtn").addEventListener("click",closeModal); byId("modal").addEventListener("click",(e)=>{if(e.target.id==="modal")closeModal();}); byId("themeBtn").addEventListener("click",toggleTheme);
-    applyTheme(); render();
+    byId("randomAddedBtn").addEventListener("click",showRandomAdded);byId("openAnimeBtn").addEventListener("click",openAddAnime);byId("openManualMangaBtn").addEventListener("click",openAddManga);byId("openImportBtn").addEventListener("click",openImportJson);byId("exportBtn").addEventListener("click",exportJson);byId("openScrapeHelpBtn").addEventListener("click",openScrapeHelp);byId("clearFilterBtn").addEventListener("click",()=>{byId("searchInput").value="";byId("statusFilter").value="all";byId("sortSelect").value="title";render();});
+    byId("closeModalBtn").addEventListener("click",closeModal);byId("modal").addEventListener("click",(e)=>{if(e.target.id==="modal")closeModal();});byId("themeBtn").addEventListener("click",()=>{const next=document.body.dataset.theme==="dark"?"light":"dark";localStorage.setItem(STORAGE_KEYS.theme,next);applyTheme();});window.addEventListener("hashchange",syncDetailByHash);
+    applyTheme();render();
   </script>
 </body>
 </html>
