@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>きらら作品管理ポータル</title>
+    <style>
+        :root {
+            --primary-color: #ff85a2;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+        }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: #333; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { color: var(--primary-color); }
+        
+        /* コントロールエリア */
+        .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        input, select, button { padding: 8px 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        input[type="text"] { width: 250px; }
+        button { background-color: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+
+        /* グリッドレイアウト */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 8px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.2s; position: relative; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 240px; object-fit: cover; }
+        .card-content { padding: 10px; }
+        .card-title { font-size: 14px; font-weight: bold; margin: 5px 0; }
+        .card-author { font-size: 12px; color: #666; }
+        
+        /* ステータスバッジ */
+        .badge { position: absolute; top: 10px; right: 10px; padding: 3px 8px; border-radius: 12px; font-size: 11px; color: white; font-weight: bold; }
+        .status-none { display: none; }
+        .status-read { background-color: #2ecc71; }
+        .status-want { background-color: #3498db; }
+        .status-dropped { background-color: #e74c3c; }
+
+        /* モーダルウィンドウ */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; max-width: 500px; width: 90%; position: relative; max-height: 85vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; border: none; background: none; color: #aaa; }
+        
+        .modal-info { display: flex; gap: 15px; margin-bottom: 15px; }
+        .modal-info img { width: 120px; height: 160px; object-fit: cover; border-radius: 4px; }
+        .modal-details { font-size: 13px; color: #555; }
+        
+        .user-input-section { margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+        .user-input-section label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
+        textarea { width: 100%; height: 60px; margin-top: 5px; box-sizing: border-box; padding: 5px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🍀 まんがタイムきらら 読書管理ポータル 🍀</h1>
+</header>
+
+<div class="controls">
+    <!-- 検索とフィルター -->
+    <input type="text" id="searchInput" placeholder="タイトル、作者名で検索...">
+    
+    <select id="statusFilter">
+        <option value="all">すべてのステータス</option>
+        <option value="read">読んだ</option>
+        <option value="want">読みたい</option>
+        <option value="dropped">途中で断念</option>
+        <option value="untracked">未登録</option>
+    </select>
+
+    <button id="viewToggleBtn" onclick="toggleViewMode()">表示モード: シリーズごと</button>
+    <button onclick="openAnimeModal()">➕ アニメ手動追加</button>
+</div>
+
+<div class="grid" id="booksGrid"></div>
+
+<!-- 詳細・編集モーダル -->
+<div class="modal" id="detailModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+    // グローバル状態
+    let allData = []; // jsonから読み込んだ全データ
+    let userStorage = JSON.parse(localStorage.getItem('kirara_user_data')) || {}; 
+    let displayMode = 'series'; // 'series' (まとめ) または 'volume' (1巻ごと)
+    let currentEditingId = null;
+
+    // ダミーデータの読み込み（本来は fetch('kirara_data.json') で取得）
+    // テスト用にスクリプト内に初期データを定義
+    const sampleData = [
+        {"id": "gochiusa_01", "title": "ご注文はうさぎですか？", "volume": 1, "author": "Koi", "label": "まんがタイムKRコミックス", "summary": "ココアが木組みの街にやってきて...", "release_date": "2012/02/27", "thumbnail": "https://images-fe.ssl-images-amazon.com/images/I/918S-gG-F2L._AC_UL600_SR600,600_.jpg", "type": "manga"},
+        {"id": "gochiusa_02", "title": "ご注文はうさぎですか？", "volume": 2, "author": "Koi", "label": "まんがタイムKRコミックス", "summary": "チノ、リゼ、千夜、シャロたちと...", "release_date": "2013/02/27", "thumbnail": "https://images-fe.ssl-images-amazon.com/images/I/91U37lE6I9L._AC_UL600_SR600,600_.jpg", "type": "manga"},
+        {"id": "machikado_01", "title": "まちカドまぞく", "volume": 1, "author": "伊藤いづも", "label": "まんがタイムKRコミックス", "summary": "ある朝突然魔族の力に目覚めたシャミ子...", "release_date": "2015/11/27", "thumbnail": "https://images-fe.ssl-images-amazon.com/images/I/91v0v3qP3RL._AC_UL600_SR600,600_.jpg", "type": "manga"}
+    ];
+
+    // 初期化
+    window.onload = function() {
+        // ローカルストレージに保存されている手動追加アニメを合流させる
+        const localAnime = JSON.parse(localStorage.getItem('kirara_custom_anime')) || [];
+        allData = [...sampleData, ...localAnime];
+        
+        // 🌟 本番環境では以下のようにJSONを読み込みます
+        /*
+        fetch('kirara_data.json')
+            .then(res => res.json())
+            .then(data => {
+                allData = [...data, ...localAnime];
+                renderGrid();
+            });
+        */
+        
+        renderGrid();
+
+        // 検索とフィルターのイベント登録
+        document.getElementById('searchInput').addEventListener('input', renderGrid);
+        document.getElementById('statusFilter').addEventListener('change', renderGrid);
+    };
+
+    // 表示モード切り替え
+    function toggleViewMode() {
+        displayMode = displayMode === 'series' ? 'volume' : 'series';
+        document.getElementById('viewToggleBtn').innerText = `表示モード: ${displayMode === 'series' ? 'シリーズごと' : '1巻ごと'}`;
+        renderGrid();
+    }
+
+    // グリッドの描画
+    function renderGrid() {
+        const grid = document.getElementById('booksGrid');
+        grid.innerHTML = '';
+
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        // 1. 検索とステータスでフィルタリング
+        let filtered = allData.filter(item => {
+            const matchesSearch = item.title.toLowerCase().includes(searchText) || item.author?.toLowerCase().includes(searchText);
+            
+            const status = userStorage[item.id]?.status || 'untracked';
+            const matchesStatus = statusFilter === 'all' || statusFilter === status;
+            
+            return matchesSearch && matchesStatus;
+        });
+
+        // 2. 「シリーズごと」ならまとめ処理を行う
+        if (displayMode === 'series') {
+            const seriesMap = {};
+            filtered.forEach(item => {
+                // 漫画で、同じタイトルのものは1巻（または若い巻数）を代表にする
+                if (item.type === 'manga') {
+                    if (!seriesMap[item.title] || item.volume < seriesMap[item.title].volume) {
+                        seriesMap[item.title] = item;
+                    }
+                } else {
+                    // アニメはそのまま表示
+                    seriesMap[item.id] = item;
+                }
+            });
+            filtered = Object.values(seriesMap);
+        }
+
+        // 3. HTML生成
+        filtered.forEach(item => {
+            const userState = userStorage[item.id] || { status: 'none' };
+            const badgeClass = `badge status-${userState.status}`;
+            const badgeText = userState.status === 'read' ? '読んだ' : userState.status === 'want' ? '読みたい' : userState.status === 'dropped' ? '断念' : '';
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.onclick = () => openDetailModal(item.id);
+            
+            // 巻数表記の調整
+            const volumeText = item.type === 'manga' ? (displayMode === 'volume' ? ` (${item.volume}巻)` : ' (シリーズ)') : ' [アニメ]';
+
+            card.innerHTML = `
+                <div class="${badgeClass}">${badgeText}</div>
+                <img src="${item.thumbnail || 'https://via.placeholder.com/150x200?text=No+Image'}" alt="${item.title}">
+                <div class="card-content">
+                    <div class="card-title">${item.title}${volumeText}</div>
+                    <div class="card-author">${item.author || item.air_date || ''}</div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // 詳細モーダルを開く
+    function openDetailModal(id) {
+        currentEditingId = id;
+        const item = allData.find(i => i.id === id);
+        const userState = userStorage[id] || { status: 'none', rating: '0', comment: '' };
+        
+        const modalBody = document.getElementById('modalBody');
+        
+        modalBody.innerHTML = `
+            <h2>${item.title} ${item.type === 'manga' ? `${item.volume}巻` : ''}</h2>
+            <div class="modal-info">
+                <img src="${item.thumbnail}" alt="${item.title}">
+                <div class="modal-details">
+                    <p><strong>作者:</strong> ${item.author || '---'}</p>
+                    <p><strong>レーベル/放送時期:</strong> ${item.label || item.air_date || '---'}</p>
+                    <p><strong>発売日:</strong> ${item.release_date || '---'}</p>
+                    <p><strong>あらすじ:</strong><br>${item.summary}</p>
+                </div>
+            </div>
+            
+            <div class="user-input-section">
+                <label>ステータス</label>
+                <select id="editStatus" onchange="saveUserData()">
+                    <option value="none" ${userState.status === 'none' ? 'selected' : ''}>未選択</option>
+                    <option value="read" ${userState.status === 'read' ? 'selected' : ''}>読んだ / 視聴済み</option>
+                    <option value="want" ${userState.status === 'want' ? 'selected' : ''}>読みたい / 見たい</option>
+                    <option value="dropped" ${userState.status === 'dropped' ? 'selected' : ''}>途中で断念</option>
+                </select>
+
+                <label>評価 (星1〜5)</label>
+                <select id="editRating" onchange="saveUserData()">
+                    <option value="0" ${userState.rating === '0' ? 'selected' : ''}>--</option>
+                    <option value="5" ${userState.rating === '5' ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
+                    <option value="4" ${userState.rating === '4' ? 'selected' : ''}>⭐⭐⭐⭐</option>
+                    <option value="3" ${userState.rating === '3' ? 'selected' : ''}>⭐⭐⭐</option>
+                    <option value="2" ${userState.rating === '2' ? 'selected' : ''}>⭐⭐</option>
+                    <option value="1" ${userState.rating === '1' ? 'selected' : ''}>⭐</option>
+                </select>
+
+                <label>感想・メモ</label>
+                <textarea id="editComment" oninput="saveUserData()">${userState.comment}</textarea>
+            </div>
+        `;
+        
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    // 感想やステータスをローカルストレージに即時保存
+    function saveUserData() {
+        if (!currentEditingId) return;
+        
+        userStorage[currentEditingId] = {
+            status: document.getElementById('editStatus').value,
+            rating: document.getElementById('editRating').value,
+            comment: document.getElementById('editComment').value
+        };
+        
+        localStorage.setItem('kirara_user_data', JSON.stringify(userStorage));
+        renderGrid(); // 背景の一覧をリアルタイム更新
+    }
+
+    // アニメ手動追加用モーダル
+    function openAnimeModal() {
+        const modalBody = document.getElementById('modalBody');
+        modalBody.innerHTML = `
+            <h2>🎬 アニメ作品の手動追加</h2>
+            <div class="user-input-section">
+                <label>アニメタイトル</label>
+                <input type="text" id="newAnimeTitle" style="width:100%;">
+                
+                <label>放送時期 (例: 2024年秋)</label>
+                <input type="text" id="newAnimeDate" style="width:100%;">
+
+                <label>あらすじ・概要</label>
+                <textarea id="newAnimeSummary"></textarea>
+                
+                <button style="margin-top:15px; width:100%;" onclick="saveNewAnime()">アニメを追加する</button>
+            </div>
+        `;
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    // アニメ保存処理
+    function saveNewAnime() {
+        const title = document.getElementById('newAnimeTitle').value;
+        const airDate = document.getElementById('newAnimeDate').value;
+        const summary = document.getElementById('newAnimeSummary').value;
+
+        if(!title) { alert('タイトルは必須です'); return; }
+
+        const newAnime = {
+            id: 'custom_anime_' + Date.now(),
+            title: title,
+            air_date: airDate,
+            summary: summary,
+            thumbnail: 'https://via.placeholder.com/150x200?text=Anime',
+            type: 'anime'
+        };
+
+        const localAnime = JSON.parse(localStorage.getItem('kirara_custom_anime')) || [];
+        localAnime.push(newAnime);
+        localStorage.setItem('kirara_custom_anime', JSON.stringify(localAnime));
+
+        allData.push(newAnime);
+        closeModal();
+        renderGrid();
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').style.display = 'none';
+        currentEditingId = null;
+    }
+</script>
+</body>
+</html>
