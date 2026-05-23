@@ -1,305 +1,491 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>きらら作品管理ポータル</title>
-    <style>
-        :root {
-            --primary-color: #ff85a2;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-        }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: #333; }
-        header { text-align: center; margin-bottom: 30px; }
-        h1 { color: var(--primary-color); }
-        
-        /* コントロールエリア */
-        .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        input, select, button { padding: 8px 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
-        input[type="text"] { width: 250px; }
-        button { background-color: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { opacity: 0.9; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>きらら作品管理ポータル</title>
+  <style>
+    :root {
+      --primary: #ff7ea5;
+      --primary-dark: #ef5d8e;
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #23303f;
+      --muted: #667588;
+      --border: #e4e9f2;
+      --ok: #2eb872;
+      --want: #2a74d6;
+      --drop: #d34a4a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 1300px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 10px; color: var(--primary-dark); }
+    p.lead { margin: 0 0 20px; color: var(--muted); }
 
-        /* グリッドレイアウト */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 8px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.2s; position: relative; }
-        .card:hover { transform: translateY(-5px); }
-        .card img { width: 100%; height: 240px; object-fit: cover; }
-        .card-content { padding: 10px; }
-        .card-title { font-size: 14px; font-weight: bold; margin: 5px 0; }
-        .card-author { font-size: 12px; color: #666; }
-        
-        /* ステータスバッジ */
-        .badge { position: absolute; top: 10px; right: 10px; padding: 3px 8px; border-radius: 12px; font-size: 11px; color: white; font-weight: bold; }
-        .status-none { display: none; }
-        .status-read { background-color: #2ecc71; }
-        .status-want { background-color: #3498db; }
-        .status-dropped { background-color: #e74c3c; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
 
-        /* モーダルウィンドウ */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: white; padding: 25px; border-radius: 10px; max-width: 500px; width: 90%; position: relative; max-height: 85vh; overflow-y: auto; }
-        .close-btn { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; border: none; background: none; color: #aaa; }
-        
-        .modal-info { display: flex; gap: 15px; margin-bottom: 15px; }
-        .modal-info img { width: 120px; height: 160px; object-fit: cover; border-radius: 4px; }
-        .modal-details { font-size: 13px; color: #555; }
-        
-        .user-input-section { margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
-        .user-input-section label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
-        textarea { width: 100%; height: 60px; margin-top: 5px; box-sizing: border-box; padding: 5px; }
-    </style>
+    .controls { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 10px; }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d4dceb;
+      font-size: 14px;
+      background: #fff;
+    }
+    button {
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { opacity: .93; }
+
+    .meta-line { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .15s ease;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-4px); }
+    .thumb {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      background: #e9eef8;
+    }
+    .badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    .status-read { background: var(--ok); }
+    .status-want { background: var(--want); }
+    .status-dropped { background: var(--drop); }
+
+    .card-body { padding: 10px; }
+    .title { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
+    .sub { font-size: 12px; color: var(--muted); margin: 0; }
+
+    .modal {
+      position: fixed; inset: 0; background: rgba(20, 24, 34, .56); display: none;
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal.show { display: flex; }
+    .dialog {
+      width: min(760px, 94vw); max-height: 88vh; overflow: auto;
+      background: #fff; border-radius: 14px; border: 1px solid var(--border); padding: 18px;
+    }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .dialog-grid { display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
+    .dialog img { width: 100%; border-radius: 10px; border: 1px solid var(--border); }
+    .kv { margin: 0 0 8px; font-size: 14px; }
+    .kv strong { color: #39485c; }
+    .section-title { margin-top: 14px; margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+    .small { font-size: 12px; color: var(--muted); }
+
+    .helper {
+      background: #fff8fb;
+      border: 1px dashed #f2bfd2;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    pre {
+      margin: 6px 0 0;
+      background: #182230;
+      color: #dce6f4;
+      border-radius: 10px;
+      padding: 10px;
+      overflow: auto;
+      font-size: 12px;
+    }
+
+    @media (max-width: 860px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .dialog-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>🍀 まんがタイムきらら 管理サイト</h1>
+    <p class="lead">HTML/CSS/JavaScriptのみ・サーバー不要。読了管理/評価/感想/検索/シリーズ表示切替に対応。</p>
 
-<header>
-    <h1>🍀 まんがタイムきらら 読書管理ポータル 🍀</h1>
-</header>
-
-<div class="controls">
-    <!-- 検索とフィルター -->
-    <input type="text" id="searchInput" placeholder="タイトル、作者名で検索...">
-    
-    <select id="statusFilter">
-        <option value="all">すべてのステータス</option>
-        <option value="read">読んだ</option>
-        <option value="want">読みたい</option>
-        <option value="dropped">途中で断念</option>
+    <div class="panel controls">
+      <input id="searchInput" type="text" placeholder="タイトル・作者・レーベルで検索" />
+      <select id="statusFilter">
+        <option value="all">ステータス: すべて</option>
+        <option value="read">読んだ・見た</option>
+        <option value="want">読みたい・見たい</option>
+        <option value="dropped">読んだけど続かなかった</option>
         <option value="untracked">未登録</option>
-    </select>
-
-    <button id="viewToggleBtn" onclick="toggleViewMode()">表示モード: シリーズごと</button>
-    <button onclick="openAnimeModal()">➕ アニメ手動追加</button>
-</div>
-
-<div class="grid" id="booksGrid"></div>
-
-<!-- 詳細・編集モーダル -->
-<div class="modal" id="detailModal">
-    <div class="modal-content">
-        <button class="close-btn" onclick="closeModal()">&times;</button>
-        <div id="modalBody"></div>
+      </select>
+      <button id="viewToggleBtn">表示: シリーズ単位</button>
+      <button id="openAnimeBtn">アニメ手動追加</button>
+      <button id="openManualMangaBtn">漫画手動追加</button>
+      <button id="openImportBtn">JSON取り込み</button>
+      <button id="exportBtn">現在データを書き出し</button>
+      <button id="openScrapeHelpBtn">スクレイピング手順</button>
     </div>
-</div>
 
-<script>
-    // グローバル状態
-    let allData = []; // jsonから読み込んだ全データ
-    let userStorage = JSON.parse(localStorage.getItem('kirara_user_data')) || {}; 
-    let displayMode = 'series'; // 'series' (まとめ) または 'volume' (1巻ごと)
-    let currentEditingId = null;
+    <div class="meta-line panel">
+      <span id="resultCount"></span>
+      <span class="small">※ 各データの状態・評価・感想はブラウザのLocalStorageに保存されます。</span>
+    </div>
 
-    // ダミーデータの読み込み（本来は fetch('kirara_data.json') で取得）
-    // テスト用にスクリプト内に初期データを定義
-    const sampleData = [
-        {"id": "gochiusa_01", "title": "ご注文はうさぎですか？", "volume": 1, "author": "Koi", "label": "まんがタイムKRコミックス", "summary": "ココアが木組みの街にやってきて...", "release_date": "2012/02/27", "thumbnail": "https://images-fe.ssl-images-amazon.com/images/I/918S-gG-F2L._AC_UL600_SR600,600_.jpg", "type": "manga"},
-        {"id": "gochiusa_02", "title": "ご注文はうさぎですか？", "volume": 2, "author": "Koi", "label": "まんがタイムKRコミックス", "summary": "チノ、リゼ、千夜、シャロたちと...", "release_date": "2013/02/27", "thumbnail": "https://images-fe.ssl-images-amazon.com/images/I/91U37lE6I9L._AC_UL600_SR600,600_.jpg", "type": "manga"},
-        {"id": "machikado_01", "title": "まちカドまぞく", "volume": 1, "author": "伊藤いづも", "label": "まんがタイムKRコミックス", "summary": "ある朝突然魔族の力に目覚めたシャミ子...", "release_date": "2015/11/27", "thumbnail": "https://images-fe.ssl-images-amazon.com/images/I/91v0v3qP3RL._AC_UL600_SR600,600_.jpg", "type": "manga"}
-    ];
+    <div id="cards" class="grid"></div>
+  </div>
 
-    // 初期化
-    window.onload = function() {
-        // ローカルストレージに保存されている手動追加アニメを合流させる
-        const localAnime = JSON.parse(localStorage.getItem('kirara_custom_anime')) || [];
-        allData = [...sampleData, ...localAnime];
-        
-        // 🌟 本番環境では以下のようにJSONを読み込みます
-        /*
-        fetch('kirara_data.json')
-            .then(res => res.json())
-            .then(data => {
-                allData = [...data, ...localAnime];
-                renderGrid();
-            });
-        */
-        
-        renderGrid();
+  <div class="modal" id="modal">
+    <div class="dialog">
+      <div class="dialog-head">
+        <strong id="modalTitle">詳細</strong>
+        <button id="closeModalBtn" style="width:auto;padding:8px 10px;">閉じる</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
 
-        // 検索とフィルターのイベント登録
-        document.getElementById('searchInput').addEventListener('input', renderGrid);
-        document.getElementById('statusFilter').addEventListener('change', renderGrid);
+  <script>
+    const STORAGE_KEYS = {
+      userState: "kirara_user_state_v2",
+      customItems: "kirara_custom_items_v2",
+      scrapedSeed: "kirara_scraped_seed_v2"
     };
 
-    // 表示モード切り替え
-    function toggleViewMode() {
-        displayMode = displayMode === 'series' ? 'volume' : 'series';
-        document.getElementById('viewToggleBtn').innerText = `表示モード: ${displayMode === 'series' ? 'シリーズごと' : '1巻ごと'}`;
-        renderGrid();
+    const defaultSeed = [
+      { id: "gochiusa_01", type: "manga", title: "ご注文はうさぎですか？", volume: 1, author: "Koi", label: "まんがタイムKRコミックス", summary: "ココアが木組みの街にやってきて、喫茶ラビットハウスで新生活。", release_date: "2012-02-27", thumbnail: "https://via.placeholder.com/300x400?text=%E3%81%94%E3%81%A1%E3%81%86%E3%81%95+1" },
+      { id: "gochiusa_02", type: "manga", title: "ご注文はうさぎですか？", volume: 2, author: "Koi", label: "まんがタイムKRコミックス", summary: "季節が進み、ラビットハウスの賑やかな日常が続く。", release_date: "2013-02-27", thumbnail: "https://via.placeholder.com/300x400?text=%E3%81%94%E3%81%A1%E3%81%86%E3%81%95+2" },
+      { id: "machikado_01", type: "manga", title: "まちカドまぞく", volume: 1, author: "伊藤いづも", label: "まんがタイムKRコミックス", summary: "魔族の少女シャミ子と、宿敵(?)魔法少女のゆるい日常。", release_date: "2015-11-27", thumbnail: "https://via.placeholder.com/300x400?text=%E3%81%BE%E3%81%A1%E3%82%AB%E3%83%89+1" }
+    ];
+
+    let userState = JSON.parse(localStorage.getItem(STORAGE_KEYS.userState) || "{}");
+    let customItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.customItems) || "[]");
+    let scrapedSeed = JSON.parse(localStorage.getItem(STORAGE_KEYS.scrapedSeed) || "[]");
+    let displayMode = "series";
+    let focusedId = null;
+
+    const byId = (id) => document.getElementById(id);
+    const saveUserState = () => localStorage.setItem(STORAGE_KEYS.userState, JSON.stringify(userState));
+    const saveCustomItems = () => localStorage.setItem(STORAGE_KEYS.customItems, JSON.stringify(customItems));
+    const saveScraped = () => localStorage.setItem(STORAGE_KEYS.scrapedSeed, JSON.stringify(scrapedSeed));
+
+    const allItems = () => [...defaultSeed, ...scrapedSeed, ...customItems];
+
+    function normalizedDate(d) {
+      return d || "";
     }
 
-    // グリッドの描画
-    function renderGrid() {
-        const grid = document.getElementById('booksGrid');
-        grid.innerHTML = '';
+    function getBadge(status) {
+      if (status === "read") return ["読んだ/見た", "status-read"];
+      if (status === "want") return ["読みたい/見たい", "status-want"];
+      if (status === "dropped") return ["断念", "status-dropped"];
+      return ["", ""];
+    }
 
-        const searchText = document.getElementById('searchInput').value.toLowerCase();
-        const statusFilter = document.getElementById('statusFilter').value;
+    function render() {
+      const search = byId("searchInput").value.trim().toLowerCase();
+      const statusFilter = byId("statusFilter").value;
+      let items = allItems();
 
-        // 1. 検索とステータスでフィルタリング
-        let filtered = allData.filter(item => {
-            const matchesSearch = item.title.toLowerCase().includes(searchText) || item.author?.toLowerCase().includes(searchText);
-            
-            const status = userStorage[item.id]?.status || 'untracked';
-            const matchesStatus = statusFilter === 'all' || statusFilter === status;
-            
-            return matchesSearch && matchesStatus;
-        });
+      items = items.filter((item) => {
+        const matchSearch = [item.title, item.author, item.label].filter(Boolean).join(" ").toLowerCase().includes(search);
+        const state = userState[item.id]?.status || "untracked";
+        const matchStatus = statusFilter === "all" || state === statusFilter;
+        return matchSearch && matchStatus;
+      });
 
-        // 2. 「シリーズごと」ならまとめ処理を行う
-        if (displayMode === 'series') {
-            const seriesMap = {};
-            filtered.forEach(item => {
-                // 漫画で、同じタイトルのものは1巻（または若い巻数）を代表にする
-                if (item.type === 'manga') {
-                    if (!seriesMap[item.title] || item.volume < seriesMap[item.title].volume) {
-                        seriesMap[item.title] = item;
-                    }
-                } else {
-                    // アニメはそのまま表示
-                    seriesMap[item.id] = item;
-                }
-            });
-            filtered = Object.values(seriesMap);
+      if (displayMode === "series") {
+        const map = new Map();
+        for (const item of items) {
+          if (item.type === "manga") {
+            const key = `manga:${item.title}`;
+            const prev = map.get(key);
+            if (!prev || (item.volume || 9999) < (prev.volume || 9999)) map.set(key, item);
+          } else {
+            map.set(`anime:${item.id}`, item);
+          }
         }
+        items = [...map.values()];
+      }
 
-        // 3. HTML生成
-        filtered.forEach(item => {
-            const userState = userStorage[item.id] || { status: 'none' };
-            const badgeClass = `badge status-${userState.status}`;
-            const badgeText = userState.status === 'read' ? '読んだ' : userState.status === 'want' ? '読みたい' : userState.status === 'dropped' ? '断念' : '';
+      items.sort((a, b) => (a.title || "").localeCompare(b.title || "ja"));
+      byId("resultCount").textContent = `表示件数: ${items.length} 件（全データ: ${allItems().length} 件）`;
 
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.onclick = () => openDetailModal(item.id);
-            
-            // 巻数表記の調整
-            const volumeText = item.type === 'manga' ? (displayMode === 'volume' ? ` (${item.volume}巻)` : ' (シリーズ)') : ' [アニメ]';
+      const root = byId("cards");
+      root.innerHTML = "";
 
-            card.innerHTML = `
-                <div class="${badgeClass}">${badgeText}</div>
-                <img src="${item.thumbnail || 'https://via.placeholder.com/150x200?text=No+Image'}" alt="${item.title}">
-                <div class="card-content">
-                    <div class="card-title">${item.title}${volumeText}</div>
-                    <div class="card-author">${item.author || item.air_date || ''}</div>
-                </div>
-            `;
-            grid.appendChild(card);
-        });
-    }
+      for (const item of items) {
+        const status = userState[item.id]?.status || "none";
+        const [label, klass] = getBadge(status);
+        const card = document.createElement("article");
+        card.className = "card";
+        card.onclick = () => openDetail(item.id);
+        const suffix = item.type === "anime"
+          ? "[アニメ]"
+          : displayMode === "volume"
+            ? `${item.volume || "-"}巻`
+            : "シリーズ";
 
-    // 詳細モーダルを開く
-    function openDetailModal(id) {
-        currentEditingId = id;
-        const item = allData.find(i => i.id === id);
-        const userState = userStorage[id] || { status: 'none', rating: '0', comment: '' };
-        
-        const modalBody = document.getElementById('modalBody');
-        
-        modalBody.innerHTML = `
-            <h2>${item.title} ${item.type === 'manga' ? `${item.volume}巻` : ''}</h2>
-            <div class="modal-info">
-                <img src="${item.thumbnail}" alt="${item.title}">
-                <div class="modal-details">
-                    <p><strong>作者:</strong> ${item.author || '---'}</p>
-                    <p><strong>レーベル/放送時期:</strong> ${item.label || item.air_date || '---'}</p>
-                    <p><strong>発売日:</strong> ${item.release_date || '---'}</p>
-                    <p><strong>あらすじ:</strong><br>${item.summary}</p>
-                </div>
-            </div>
-            
-            <div class="user-input-section">
-                <label>ステータス</label>
-                <select id="editStatus" onchange="saveUserData()">
-                    <option value="none" ${userState.status === 'none' ? 'selected' : ''}>未選択</option>
-                    <option value="read" ${userState.status === 'read' ? 'selected' : ''}>読んだ / 視聴済み</option>
-                    <option value="want" ${userState.status === 'want' ? 'selected' : ''}>読みたい / 見たい</option>
-                    <option value="dropped" ${userState.status === 'dropped' ? 'selected' : ''}>途中で断念</option>
-                </select>
-
-                <label>評価 (星1〜5)</label>
-                <select id="editRating" onchange="saveUserData()">
-                    <option value="0" ${userState.rating === '0' ? 'selected' : ''}>--</option>
-                    <option value="5" ${userState.rating === '5' ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
-                    <option value="4" ${userState.rating === '4' ? 'selected' : ''}>⭐⭐⭐⭐</option>
-                    <option value="3" ${userState.rating === '3' ? 'selected' : ''}>⭐⭐⭐</option>
-                    <option value="2" ${userState.rating === '2' ? 'selected' : ''}>⭐⭐</option>
-                    <option value="1" ${userState.rating === '1' ? 'selected' : ''}>⭐</option>
-                </select>
-
-                <label>感想・メモ</label>
-                <textarea id="editComment" oninput="saveUserData()">${userState.comment}</textarea>
-            </div>
+        card.innerHTML = `
+          ${label ? `<div class="badge ${klass}">${label}</div>` : ""}
+          <img class="thumb" src="${item.thumbnail || "https://via.placeholder.com/300x400?text=No+Image"}" alt="${item.title}">
+          <div class="card-body">
+            <p class="title">${item.title}</p>
+            <p class="sub">${suffix}</p>
+            <p class="sub">${item.author || item.air_date || ""}</p>
+          </div>
         `;
-        
-        document.getElementById('detailModal').style.display = 'flex';
+        root.appendChild(card);
+      }
     }
 
-    // 感想やステータスをローカルストレージに即時保存
-    function saveUserData() {
-        if (!currentEditingId) return;
-        
-        userStorage[currentEditingId] = {
-            status: document.getElementById('editStatus').value,
-            rating: document.getElementById('editRating').value,
-            comment: document.getElementById('editComment').value
-        };
-        
-        localStorage.setItem('kirara_user_data', JSON.stringify(userStorage));
-        renderGrid(); // 背景の一覧をリアルタイム更新
-    }
-
-    // アニメ手動追加用モーダル
-    function openAnimeModal() {
-        const modalBody = document.getElementById('modalBody');
-        modalBody.innerHTML = `
-            <h2>🎬 アニメ作品の手動追加</h2>
-            <div class="user-input-section">
-                <label>アニメタイトル</label>
-                <input type="text" id="newAnimeTitle" style="width:100%;">
-                
-                <label>放送時期 (例: 2024年秋)</label>
-                <input type="text" id="newAnimeDate" style="width:100%;">
-
-                <label>あらすじ・概要</label>
-                <textarea id="newAnimeSummary"></textarea>
-                
-                <button style="margin-top:15px; width:100%;" onclick="saveNewAnime()">アニメを追加する</button>
-            </div>
-        `;
-        document.getElementById('detailModal').style.display = 'flex';
-    }
-
-    // アニメ保存処理
-    function saveNewAnime() {
-        const title = document.getElementById('newAnimeTitle').value;
-        const airDate = document.getElementById('newAnimeDate').value;
-        const summary = document.getElementById('newAnimeSummary').value;
-
-        if(!title) { alert('タイトルは必須です'); return; }
-
-        const newAnime = {
-            id: 'custom_anime_' + Date.now(),
-            title: title,
-            air_date: airDate,
-            summary: summary,
-            thumbnail: 'https://via.placeholder.com/150x200?text=Anime',
-            type: 'anime'
-        };
-
-        const localAnime = JSON.parse(localStorage.getItem('kirara_custom_anime')) || [];
-        localAnime.push(newAnime);
-        localStorage.setItem('kirara_custom_anime', JSON.stringify(localAnime));
-
-        allData.push(newAnime);
-        closeModal();
-        renderGrid();
+    function openModal(title, bodyHtml) {
+      byId("modalTitle").textContent = title;
+      byId("modalBody").innerHTML = bodyHtml;
+      byId("modal").classList.add("show");
     }
 
     function closeModal() {
-        document.getElementById('detailModal').style.display = 'none';
-        currentEditingId = null;
+      byId("modal").classList.remove("show");
+      focusedId = null;
     }
-</script>
+
+    function openDetail(id) {
+      focusedId = id;
+      const item = allItems().find((i) => i.id === id);
+      if (!item) return;
+      const state = userState[id] || { status: "none", rating: "0", comment: "" };
+      openModal(item.title, `
+        <div class="dialog-grid">
+          <img src="${item.thumbnail || "https://via.placeholder.com/300x400?text=No+Image"}" alt="${item.title}">
+          <div>
+            <p class="kv"><strong>区分:</strong> ${item.type === "anime" ? "アニメ" : "漫画"}</p>
+            <p class="kv"><strong>巻数:</strong> ${item.type === "manga" ? (item.volume || "-") : "-"}</p>
+            <p class="kv"><strong>作者:</strong> ${item.author || "-"}</p>
+            <p class="kv"><strong>レーベル/放送:</strong> ${item.label || item.air_date || "-"}</p>
+            <p class="kv"><strong>発売日:</strong> ${normalizedDate(item.release_date) || "-"}</p>
+            <p class="kv"><strong>あらすじ:</strong><br>${item.summary || "-"}</p>
+          </div>
+        </div>
+
+        <div class="section-title">あなたの管理情報</div>
+        <label class="small">ステータス</label>
+        <select id="editStatus">
+          <option value="none" ${state.status === "none" ? "selected" : ""}>未選択</option>
+          <option value="read" ${state.status === "read" ? "selected" : ""}>読んだ・見た</option>
+          <option value="want" ${state.status === "want" ? "selected" : ""}>読みたい・見たい</option>
+          <option value="dropped" ${state.status === "dropped" ? "selected" : ""}>読んだけど続かなかった</option>
+        </select>
+
+        <label class="small">評価（1〜5）</label>
+        <select id="editRating">
+          <option value="0" ${state.rating === "0" ? "selected" : ""}>未評価</option>
+          <option value="5" ${state.rating === "5" ? "selected" : ""}>★★★★★</option>
+          <option value="4" ${state.rating === "4" ? "selected" : ""}>★★★★☆</option>
+          <option value="3" ${state.rating === "3" ? "selected" : ""}>★★★☆☆</option>
+          <option value="2" ${state.rating === "2" ? "selected" : ""}>★★☆☆☆</option>
+          <option value="1" ${state.rating === "1" ? "selected" : ""}>★☆☆☆☆</option>
+        </select>
+
+        <label class="small">感想・メモ</label>
+        <textarea id="editComment" rows="5">${state.comment || ""}</textarea>
+        <button id="saveStateBtn" style="margin-top:8px;">保存する</button>
+      `);
+
+      byId("saveStateBtn").onclick = () => {
+        userState[id] = {
+          status: byId("editStatus").value,
+          rating: byId("editRating").value,
+          comment: byId("editComment").value
+        };
+        saveUserState();
+        render();
+      };
+    }
+
+    function openAddAnime() {
+      openModal("アニメ手動追加", `
+        <label>タイトル</label><input id="animeTitle" />
+        <label>放送時期</label><input id="animeAir" placeholder="2026年春 など" />
+        <label>あらすじ</label><textarea id="animeSummary" rows="4"></textarea>
+        <label>サムネイルURL(任意)</label><input id="animeThumb" placeholder="https://..." />
+        <button id="saveAnimeBtn" style="margin-top:8px;">追加</button>
+      `);
+      byId("saveAnimeBtn").onclick = () => {
+        const title = byId("animeTitle").value.trim();
+        if (!title) return alert("タイトルは必須です");
+        customItems.push({
+          id: `anime_custom_${Date.now()}`,
+          type: "anime",
+          title,
+          air_date: byId("animeAir").value.trim(),
+          summary: byId("animeSummary").value.trim(),
+          thumbnail: byId("animeThumb").value.trim() || "https://via.placeholder.com/300x400?text=Anime"
+        });
+        saveCustomItems();
+        closeModal();
+        render();
+      };
+    }
+
+    function openAddManga() {
+      openModal("漫画手動追加", `
+        <label>タイトル</label><input id="mTitle" />
+        <label>巻数</label><input id="mVol" type="number" min="1" />
+        <label>作者</label><input id="mAuthor" />
+        <label>レーベル</label><input id="mLabel" />
+        <label>発売日</label><input id="mDate" placeholder="YYYY-MM-DD" />
+        <label>あらすじ</label><textarea id="mSummary" rows="4"></textarea>
+        <label>サムネイルURL(任意)</label><input id="mThumb" placeholder="https://..." />
+        <button id="saveMangaBtn" style="margin-top:8px;">追加</button>
+      `);
+      byId("saveMangaBtn").onclick = () => {
+        const title = byId("mTitle").value.trim();
+        if (!title) return alert("タイトルは必須です");
+        customItems.push({
+          id: `manga_custom_${Date.now()}`,
+          type: "manga",
+          title,
+          volume: Number(byId("mVol").value) || 1,
+          author: byId("mAuthor").value.trim(),
+          label: byId("mLabel").value.trim(),
+          release_date: byId("mDate").value.trim(),
+          summary: byId("mSummary").value.trim(),
+          thumbnail: byId("mThumb").value.trim() || "https://via.placeholder.com/300x400?text=Manga"
+        });
+        saveCustomItems();
+        closeModal();
+        render();
+      };
+    }
+
+    function openImportJson() {
+      openModal("JSON取り込み", `
+        <p class="small">以下形式の配列JSONを貼り付けてください（manga/anime混在可）。</p>
+        <pre>[{"id":"foo_01","type":"manga","title":"作品名","volume":1,"author":"作者","label":"KR","summary":"...","release_date":"2026-01-01","thumbnail":"https://..."}]</pre>
+        <textarea id="importText" rows="10" placeholder="ここにJSONを貼り付け"></textarea>
+        <button id="importBtn" style="margin-top:8px;">取り込み実行</button>
+      `);
+      byId("importBtn").onclick = () => {
+        try {
+          const rows = JSON.parse(byId("importText").value);
+          if (!Array.isArray(rows)) throw new Error("配列ではありません");
+          const mapped = rows.map((r, idx) => ({ ...r, id: r.id || `import_${Date.now()}_${idx}` }));
+          scrapedSeed = [...scrapedSeed, ...mapped];
+          saveScraped();
+          closeModal();
+          render();
+        } catch (e) {
+          alert(`JSONエラー: ${e.message}`);
+        }
+      };
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify(allItems(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "kirara_data_export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function openScrapeHelp() {
+      openModal("スクレイピング手順（dokidokivisual.com）", `
+        <div class="helper">
+          <p><strong>注意:</strong> サイトの利用規約・robots.txtを確認し、負荷をかけない間隔で実行してください。</p>
+          <p>このアプリはサーバー不要なので、スクレイピングは<strong>別途ローカルで実行→JSONを取り込み</strong>します。</p>
+          <ol>
+            <li>Pythonで作品一覧ページを取得（requests）</li>
+            <li>作品詳細から <strong>作者 / レーベル / あらすじ / 発売日</strong> を抽出（BeautifulSoup）</li>
+            <li>同タイトルは巻ごとに保存（この画面でシリーズ表示/巻表示を切替）</li>
+            <li>生成したJSONを「JSON取り込み」で投入</li>
+          </ol>
+          <p class="small">サンプル（CSSセレクタは実際のHTML構造に合わせて調整）:</p>
+<pre>import requests, json, time
+from bs4 import BeautifulSoup
+
+BASE = "https://www.dokidokivisual.com"
+LIST_URL = BASE + "/comics/"
+headers = {"User-Agent": "KiraraManagerBot/1.0"}
+
+res = requests.get(LIST_URL, headers=headers, timeout=20)
+soup = BeautifulSoup(res.text, "html.parser")
+links = [a["href"] for a in soup.select("a") if "/comics/" in a.get("href", "")]
+
+items = []
+for href in sorted(set(links)):
+    url = href if href.startswith("http") else BASE + href
+    d = BeautifulSoup(requests.get(url, headers=headers, timeout=20).text, "html.parser")
+    title = d.select_one("h1").get_text(strip=True)
+    author = d.select_one(".author").get_text(strip=True)
+    label = d.select_one(".label").get_text(strip=True)
+    summary = d.select_one(".summary").get_text(" ", strip=True)
+    release = d.select_one(".release").get_text(strip=True)
+    thumb = d.select_one("img") and d.select_one("img").get("src", "")
+
+    items.append({
+      "id": f"{title}_1", "type": "manga", "title": title, "volume": 1,
+      "author": author, "label": label, "summary": summary,
+      "release_date": release, "thumbnail": thumb
+    })
+    time.sleep(1.0)
+
+with open("kirara_scraped.json", "w", encoding="utf-8") as f:
+    json.dump(items, f, ensure_ascii=False, indent=2)</pre>
+        </div>
+      `);
+    }
+
+    function toggleViewMode() {
+      displayMode = displayMode === "series" ? "volume" : "series";
+      byId("viewToggleBtn").textContent = displayMode === "series" ? "表示: シリーズ単位" : "表示: 1巻ごと";
+      render();
+    }
+
+    byId("searchInput").addEventListener("input", render);
+    byId("statusFilter").addEventListener("change", render);
+    byId("viewToggleBtn").addEventListener("click", toggleViewMode);
+    byId("openAnimeBtn").addEventListener("click", openAddAnime);
+    byId("openManualMangaBtn").addEventListener("click", openAddManga);
+    byId("openImportBtn").addEventListener("click", openImportJson);
+    byId("exportBtn").addEventListener("click", exportJson);
+    byId("openScrapeHelpBtn").addEventListener("click", openScrapeHelp);
+    byId("closeModalBtn").addEventListener("click", closeModal);
+    byId("modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+
+    render();
+  </script>
 </body>
 </html>
