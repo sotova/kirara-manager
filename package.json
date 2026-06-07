@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "dev": "npx -y serve ."
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "cheerio": "^1.2.0",
+    "iconv-lite": "^0.7.2"
+  }
+}

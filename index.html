@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="1006_sy_h.ico" type="image/x-icon">
+  <meta name="description" content="まんがタイムきららシリーズのコミックスとアニメ作品のステータス管理、評価、感想を記録できる美しく高機能なサーバーレスサイト。ローカルスクレイピング機能付き。">
+  <meta name="keywords" content="まんがタイムきらら, きらら作品, ぼっち・ざ・ろっく！, ご注文はうさぎですか？, ゆるキャン△, 作品管理, 読書管理, アニメ管理">
+  <title>Kirara Works Manager | まんがタイムきららファン用作品管理</title>
+
+  <!-- CSSスタイルシート -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Lucide Icons (モダンなSVGアイコンライブラリ) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+  <!-- アニメーション背景キャンバス -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- グラデーションSVG用シンボル定義（Lucideアイコン等にグラデーションを適用するため） -->
+  <svg style="width:0; height:0; position:absolute; visibility:hidden;" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="pink-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#ff4081" />
+        <stop offset="100%" stop-color="#d500f9" />
+      </linearGradient>
+      <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#3d5afe" />
+        <stop offset="100%" stop-color="#00b0ff" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- アプリケーションヘッダー -->
+  <header>
+    <div class="header-container">
+      <div class="logo">
+        <!-- グラデーションをかけたきららブックアイコン -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          <path d="M12 6l1.5 3 3.5.5-2.5 2.5 1 3.5-3.5-2-3.5 2 1-3.5-2.5-2.5 3.5-.5z" fill="#ff4081" stroke="none">
+          </path>
+        </svg>
+        <span>Kirara Manager</span>
+      </div>
+
+      <!-- メインナビゲーション -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" id="tab-home">
+          <i data-lucide="home"></i> ホーム
+        </button>
+        <button class="tab-btn" id="tab-manga">
+          <i data-lucide="book-open"></i> コミックス一覧
+        </button>
+        <button class="tab-btn" id="tab-anime">
+          <i data-lucide="tv"></i> アニメ管理
+        </button>
+        <button class="tab-btn" id="tab-settings">
+          <i data-lucide="sliders"></i> 設定・スクレイパー
+        </button>
+      </nav>
+
+      <!-- 右側のアクションボタン -->
+      <div class="user-actions">
+        <button class="action-btn" id="theme-toggle" title="テーマ切り替え">
+          <i data-lucide="sun"></i>
+        </button>
+        <a href="https://www.dokidokivisual.com/" target="_blank" class="action-btn" title="公式 どきどきビジュアルへ">
+          <i data-lucide="external-link"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ領域 -->
+  <main>
+
+    <!-- 検索 & フィルターコントロールカード -->
+    <section class="controls-card" id="controls-card">
+
+      <!-- 1行目: リアルタイム検索 & 表示形式切替 -->
+      <div class="search-row">
+        <div class="search-wrapper">
+          <i data-lucide="search"></i>
+          <input type="text" class="search-input" id="search-input" placeholder="作品名、巻名、著者、あらすじから検索...">
+        </div>
+
+        <!-- まとめる/まとめない表示切替トグル -->
+        <div class="toggle-group-view" id="view-toggle-group">
+          <button class="toggle-btn active" id="toggle-grouped" title="同じ作品の巻数を1つにまとめます">
+            <i data-lucide="library"></i> タイトル別
+          </button>
+          <button class="toggle-btn" id="toggle-individual" title="全巻の単巻をバラバラに表示します">
+            <i data-lucide="book"></i> 1巻ずつ表示
+          </button>
+        </div>
+      </div>
+
+      <!-- 2行目: 絞り込み & ソート -->
+      <div class="filter-row">
+        <!-- レーベル選択 -->
+        <div class="filter-group" id="filter-label-group">
+          <span class="filter-label">レーベル:</span>
+          <select class="select-custom" id="filter-label">
+            <option value="all">すべてのレーベル</option>
+            <option value="KRコミックス">KRコミックス</option>
+            <option value="KRコミックスフォワードシリーズ">KRコミックスフォワードシリーズ</option>
+          </select>
+        </div>
+
+        <!-- 読書ステータスフィルター -->
+        <div class="filter-group">
+          <span class="filter-label">読書/視聴状況:</span>
+          <div class="badge-filter">
+            <button class="status-tag-btn" data-status="read">
+              <span class="dot"></span> 読み終わった
+            </button>
+            <button class="status-tag-btn" data-status="want">
+              <span class="dot"></span> 読みたい
+            </button>
+            <button class="status-tag-btn" data-status="reading">
+              <span class="dot"></span> 読み途中
+            </button>
+            <button class="status-tag-btn" data-status="dropped">
+              <span class="dot"></span> 読むのをやめた
+            </button>
+            <button class="status-tag-btn" data-status="unread">
+              <span class="dot"></span> 未読
+            </button>
+          </div>
+        </div>
+
+        <!-- ソート方法 -->
+        <div class="filter-group" style="margin-left: auto;">
+          <span class="filter-label">順序:</span>
+          <select class="select-custom" id="sort-select">
+            <option value="release_desc">発売日/放送時期が新しい順</option>
+            <option value="release_asc">発売日/放送時期が古い順</option>
+            <option value="title_asc">作品名 (五十音順)</option>
+            <option value="rating_desc">マイ評価が高い順</option>
+          </select>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ホーム画面セクション -->
+    <section id="section-home" style="display: block;">
+      <div class="home-grid" id="home-grid-container"></div>
+    </section>
+
+    <!-- マンガ一覧セクション -->
+    <section id="section-manga" style="display: none;">
+      <!-- JavaScriptによってカードがここに自動生成されます -->
+      <div class="grid-container" id="manga-grid-container">
+        <!-- ロードインジケーター（通常は一瞬でロードされます） -->
+        <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-muted);">
+          <i data-lucide="loader-2" class="animate-spin"
+            style="width: 32px; height: 32px; animation: spin 1s linear infinite; margin-bottom: 1rem;"></i>
+          <p>データを読み込んでいます...</p>
+        </div>
+      </div>
+      <div id="manga-pagination" class="pagination-controls"></div>
+    </section>
+
+    <!-- アニメ管理セクション -->
+    <section id="section-anime" style="display: none;">
+      <div class="grid-container" id="anime-grid-container"></div>
+      <div id="anime-pagination" class="pagination-controls"></div>
+    </section>
+
+    <!-- 設定・管理セクション -->
+    <section id="section-settings" style="display: none;">
+      <div class="grid-container" id="settings-grid-container"></div>
+    </section>
+
+  </main>
+
+  <!-- トランスルーセント詳細ポップアップモーダル -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-wrapper" id="modal-wrapper">
+      <button class="modal-close" id="modal-close" aria-label="閉じる">
+        <i data-lucide="x"></i>
+      </button>
+      <div id="modal-content">
+        <!-- 選択された内容に応じてHTMLが動的に差し込まれます -->
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知システム -->
+  <div class="toast-notification" id="toast">
+    <i data-lucide="sparkles"></i>
+    <span id="toast-text">メッセージがここに表示されます。</span>
+  </div>
+
+  <!-- レスポンシブフッター -->
+  <footer>
+    <p>
+      Kirara Works Manager &copy; 2026. Made with ♥ for Kirara Fans.
+    </p>
+    <p style="margin-top: 0.5rem; font-size: 0.75rem;">
+      書誌情報は <a href="https://www.dokidokivisual.com/" target="_blank" rel="noopener noreferrer">どきどきビジュアル (芳文社)</a>
+      よりスクレイピングまたは参照しています。
+    </p>
+  </footer>
+
+  <!-- コアアプリケーションJavaScript -->
+  <script src="app.js"></script>
+</body>
+
+</html>
