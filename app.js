@@ -17,6 +17,7 @@ class KiraraApp {
     this.comics = [];              // マスターコミックスデータ (JSON + 手動カスタムの合算)
     this.userCustomComics = [];    // 手動で追加したコミックスリスト
     this.userComics = {};          // ユーザーの読書ステータス・評価・感想 { [bookId]: { status, rating, review } }
+    this.userMangaWorks = {};      // 作品単位のステータス・評価・メモ { [title]: { status, rating, review } }
     this.userAnime = [];           // ユーザーの手動登録アニメリスト
     
     // UI制御状態
@@ -138,12 +139,22 @@ class KiraraApp {
     if (savedTheme === 'light') {
       document.body.classList.add('light-theme');
     }
+    this.updateThemeToggleIcon();
   }
 
   toggleTheme() {
     document.body.classList.toggle('light-theme');
     const isLight = document.body.classList.contains('light-theme');
     localStorage.setItem('kirara_theme', isLight ? 'light' : 'dark');
+    this.updateThemeToggleIcon();
+  }
+
+  updateThemeToggleIcon() {
+    if (!this.themeToggleBtn) return;
+    const isLight = document.body.classList.contains('light-theme');
+    this.themeToggleBtn.innerHTML = `<i data-lucide="${isLight ? 'moon' : 'sun'}"></i>`;
+    this.themeToggleBtn.title = isLight ? 'ダークテーマへ切り替え' : 'ライトテーマへ切り替え';
+    this.updateLucide();
   }
 
   // --- データ処理 ---
@@ -153,6 +164,9 @@ class KiraraApp {
     try {
       const savedUserComics = localStorage.getItem('kirara_user_comics');
       this.userComics = savedUserComics ? JSON.parse(savedUserComics) : {};
+
+      const savedUserMangaWorks = localStorage.getItem('kirara_user_manga_works');
+      this.userMangaWorks = savedUserMangaWorks ? JSON.parse(savedUserMangaWorks) : {};
 
       const savedUserAnime = localStorage.getItem('kirara_user_anime');
       this.userAnime = savedUserAnime ? JSON.parse(savedUserAnime) : [];
@@ -169,6 +183,7 @@ class KiraraApp {
   saveLocalStorage() {
     try {
       localStorage.setItem('kirara_user_comics', JSON.stringify(this.userComics));
+      localStorage.setItem('kirara_user_manga_works', JSON.stringify(this.userMangaWorks));
       localStorage.setItem('kirara_user_anime', JSON.stringify(this.userAnime));
       localStorage.setItem('kirara_user_custom_comics', JSON.stringify(this.userCustomComics));
     } catch (e) {
@@ -292,6 +307,71 @@ class KiraraApp {
         this.closeModal();
       }
     });
+  }
+
+  // --- 共通ステータス定義 ---
+  getMangaStatusDefinitions() {
+    return {
+      read: { label: '読了', colorVar: 'var(--status-read)' },
+      reading: { label: '読書中', colorVar: 'var(--accent-blue)' },
+      unread: { label: '未読', colorVar: 'var(--status-unread)' },
+      paused: { label: '中断', colorVar: 'var(--status-paused)' },
+      dropped: { label: '読書切り', colorVar: 'var(--status-dropped)' },
+      want: { label: '読みたい', colorVar: 'var(--status-want)' }
+    };
+  }
+
+  getAnimeStatusDefinitions() {
+    return {
+      read: { label: '視聴完了', colorVar: 'var(--status-read)' },
+      watching: { label: '視聴中', colorVar: 'var(--accent-blue)' },
+      want: { label: '見たい', colorVar: 'var(--status-want)' },
+      paused: { label: '中断', colorVar: 'var(--status-paused)' },
+      dropped: { label: '視聴切り', colorVar: 'var(--status-dropped)' }
+    };
+  }
+
+  getMangaStatusLabel(status) {
+    const defs = this.getMangaStatusDefinitions();
+    return (defs[status] || defs.unread).label;
+  }
+
+  getAnimeStatusLabel(status) {
+    const defs = this.getAnimeStatusDefinitions();
+    return (defs[status] || defs.want).label;
+  }
+
+  getWorkStatus(title, volumes = []) {
+    const explicit = this.userMangaWorks[title];
+    if (explicit && explicit.status) return explicit.status;
+    if (volumes.length === 0) return 'unread';
+    const statuses = volumes.map(v => (this.userComics[v.id] || {}).status || 'unread');
+    const readCount = statuses.filter(st => st === 'read').length;
+    if (readCount === volumes.length) return 'read';
+    if (statuses.includes('reading')) return 'reading';
+    if (statuses.includes('paused')) return 'paused';
+    if (statuses.includes('dropped')) return 'dropped';
+    if (statuses.includes('want')) return 'want';
+    return readCount > 0 ? 'reading' : 'unread';
+  }
+
+  getReadCount(volumes) {
+    return volumes.filter(v => ((this.userComics[v.id] || {}).status || 'unread') === 'read').length;
+  }
+
+  createMangaStatusOptions(selectedStatus) {
+    return Object.entries(this.getMangaStatusDefinitions()).map(([value, def]) =>
+      `<option value="${value}" ${selectedStatus === value ? 'selected' : ''}>${def.label}</option>`
+    ).join('');
+  }
+
+  renderMangaStatusRadios(name, selectedStatus) {
+    return Object.entries(this.getMangaStatusDefinitions()).map(([value, def]) => `
+      <div class="status-radio-btn" data-status="${value}">
+        <input type="radio" name="${name}" id="${name}-${value}" value="${value}" ${selectedStatus === value ? 'checked' : ''}>
+        <label class="status-radio-label" for="${name}-${value}"><span class="dot" style="background:${def.colorVar}"></span> ${def.label}</label>
+      </div>
+    `).join('');
   }
 
   // --- UI ロジック ---
@@ -483,35 +563,21 @@ class KiraraApp {
         const volumes = groups[title].sort((a, b) => a.volume - b.volume);
         const firstVol = volumes[0];
         
-        let readCount = 0;
-        let wantCount = 0;
-        let droppedCount = 0;
         let totalValuedRating = 0;
         let ratedCount = 0;
 
         volumes.forEach(v => {
           const state = this.userComics[v.id] || { status: 'unread', rating: 0 };
-          if (state.status === 'read') readCount++;
-          else if (state.status === 'want') wantCount++;
-          else if (state.status === 'dropped') droppedCount++;
-          
           if (state.rating > 0) {
             totalValuedRating += state.rating;
             ratedCount++;
           }
         });
 
-        // 全体の代表ステータス決定
-        let overallStatus = 'unread';
-        if (readCount === volumes.length) {
-          overallStatus = 'read';
-        } else if (readCount > 0 || droppedCount > 0) {
-          overallStatus = 'dropped';
-        } else if (wantCount > 0) {
-          overallStatus = 'want';
-        }
-
-        const avgRating = ratedCount > 0 ? (totalValuedRating / ratedCount).toFixed(1) : 0;
+        const readCount = this.getReadCount(volumes);
+        const overallStatus = this.getWorkStatus(title, volumes);
+        const explicitWorkState = this.userMangaWorks[title] || {};
+        const avgRating = explicitWorkState.rating > 0 ? explicitWorkState.rating : (ratedCount > 0 ? (totalValuedRating / ratedCount).toFixed(1) : 0);
 
         return {
           title,
@@ -592,7 +658,7 @@ class KiraraApp {
     card.className = 'work-card fade-in';
     
     const userState = this.userComics[book.id] || { status: 'unread', rating: 0 };
-    const statusTextMap = { 'read': '読み終わった', 'want': '読みたい', 'reading': '読み途中', 'dropped': '読むのをやめた', 'unread': '未読' };
+    const statusTextMap = Object.fromEntries(Object.entries(this.getMangaStatusDefinitions()).map(([key, value]) => [key, value.label]));
     
     let ratingStars = '';
     if (userState.rating > 0) {
@@ -609,7 +675,7 @@ class KiraraApp {
         <div class="cover-overlay"></div>
         <div class="card-badges">
           <span class="badge status-${userState.status}">
-            <span class="dot"></span> ${statusTextMap[userState.status]}
+            <span class="dot"></span> ${statusTextMap[userState.status] || statusTextMap.unread}
           </span>
         </div>
       </div>
@@ -635,8 +701,7 @@ class KiraraApp {
     const card = document.createElement('div');
     card.className = 'work-card fade-in';
     
-    const statusTextMap = { 'read': '読み終わった', 'dropped': '読むのをやめた', 'reading': '読み途中', 'want': '読みたい', 'unread': '未読' };
-    const progressText = `${group.readCount}/${group.volumes.length}巻 読了`;
+    const statusTextMap = Object.fromEntries(Object.entries(this.getMangaStatusDefinitions()).map(([key, value]) => [key, value.label]));
     
     let ratingStars = '';
     if (group.avgRating > 0) {
@@ -656,7 +721,7 @@ class KiraraApp {
         <div class="cover-overlay"></div>
         <div class="card-badges">
           <span class="badge status-${group.overallStatus}">
-            <span class="dot"></span> ${statusTextMap[group.overallStatus]}
+            <span class="dot"></span> ${statusTextMap[group.overallStatus] || statusTextMap.unread}
           </span>
           <span class="badge volume-count">全 ${group.volumes.length} 巻</span>
         </div>
@@ -728,7 +793,7 @@ class KiraraApp {
                   </div>
                 </div>
                 <div class="vol-actions-area">
-                  <span class="badge anime-card-badge">${a.status === 'read' ? '視聴完了' : a.status === 'watching' ? '視聴中' : a.status === 'want' ? '見たい' : '中断'}</span>
+                  <span class="badge anime-card-badge">${this.getAnimeStatusLabel(a.status)}</span>
                   ${a.rating > 0 ? `<div class="card-rating"><i data-lucide="star"></i> ${a.rating}</div>` : ''}
                 </div>
               </div>
@@ -781,26 +846,7 @@ class KiraraApp {
                 <div class="form-group full-width">
                   <label>読書状況</label>
                   <div class="status-radio-group">
-                    <div class="status-radio-btn" data-status="read">
-                      <input type="radio" name="detail-status" id="st-read" value="read" ${userState.status === 'read' ? 'checked' : ''}>
-                      <label class="status-radio-label" for="st-read"><span class="dot" style="background:var(--status-read)"></span> 読み終わった</label>
-                    </div>
-                    <div class="status-radio-btn" data-status="want">
-                      <input type="radio" name="detail-status" id="st-want" value="want" ${userState.status === 'want' ? 'checked' : ''}>
-                      <label class="status-radio-label" for="st-want"><span class="dot" style="background:var(--status-want)"></span> 読みたい</label>
-                    </div>
-                    <div class="status-radio-btn" data-status="reading">
-                      <input type="radio" name="detail-status" id="st-reading" value="reading" ${userState.status === 'reading' ? 'checked' : ''}>
-                      <label class="status-radio-label" for="st-reading"><span class="dot" style="background:var(--accent-blue)"></span> 読み途中</label>
-                    </div>
-                    <div class="status-radio-btn" data-status="dropped">
-                      <input type="radio" name="detail-status" id="st-dropped" value="dropped" ${userState.status === 'dropped' ? 'checked' : ''}>
-                      <label class="status-radio-label" for="st-dropped"><span class="dot" style="background:var(--status-dropped)"></span> 読むのをやめた</label>
-                    </div>
-                    <div class="status-radio-btn" data-status="unread">
-                      <input type="radio" name="detail-status" id="st-unread" value="unread" ${userState.status === 'unread' ? 'checked' : ''}>
-                      <label class="status-radio-label" for="st-unread"><span class="dot" style="background:var(--status-unread)"></span> 未読</label>
-                    </div>
+                    ${this.renderMangaStatusRadios('detail-status', userState.status)}
                   </div>
                 </div>
 
@@ -874,44 +920,45 @@ class KiraraApp {
     });
   }
 
-  // グループ化表示（作品別）時の詳細表示モーダル（複数巻を一覧・個別編集可能）
+  // グループ化表示（作品別）時の詳細表示モーダル（作品単位ステータス＋複数巻を一覧・個別編集可能）
   showGroupedDetail(titleName) {
     const volumes = this.comics.filter(c => c.title === titleName).sort((a, b) => a.volume - b.volume);
     if (volumes.length === 0) return;
 
     const firstVol = volumes[0];
+    const workState = this.userMangaWorks[titleName] || { status: this.getWorkStatus(titleName, volumes), rating: 0, review: '' };
+    const readCount = this.getReadCount(volumes);
+    const readPct = volumes.length > 0 ? Math.round((readCount / volumes.length) * 100) : 0;
+    const lastReadVolume = [...volumes].reverse().find(v => ((this.userComics[v.id] || {}).status || 'unread') === 'read');
+    const progressLabel = lastReadVolume ? `第${lastReadVolume.volume}巻まで読了` : 'まだ読了巻はありません';
+    const statusDefs = this.getMangaStatusDefinitions();
+    const selectedStatus = workState.status || this.getWorkStatus(titleName, volumes);
     
     // 関連アニメの検索
     const linkedAnimes = this.userAnime.filter(a => a.linkedMangaTitle === titleName);
-    let animeListHtml = '';
-    if (linkedAnimes.length > 0) {
-      animeListHtml = `
-        <div class="volume-list-section">
-          <h4 class="volume-list-title"><i data-lucide="tv"></i> メディア展開（アニメ）</h4>
-          <div class="volumes-accordion">
-            ${linkedAnimes.map(a => `
-              <div class="volume-row-item" style="border-color: rgba(61, 90, 254, 0.2); background: rgba(61, 90, 254, 0.02); cursor: pointer;" onclick="window.app.showAnimeDetail('${a.id}')">
-                <div class="vol-title-info">
-                  <i data-lucide="play" style="color: var(--accent-blue);"></i>
-                  <div>
-                    <span class="vol-title-text" style="color: #90caf9">${a.title}</span>
-                    <div class="vol-meta-info">${a.broadcastDate || '放送時期不明'} / ${a.episodes || '話数未設定'}</div>
-                  </div>
-                </div>
-                <div class="vol-actions-area">
-                  <span class="badge anime-card-badge">${a.status === 'read' ? '視聴完了' : a.status === 'watching' ? '視聴中' : a.status === 'want' ? '見たい' : '中断'}</span>
-                  ${a.rating > 0 ? `<div class="card-rating"><i data-lucide="star"></i> ${a.rating}</div>` : ''}
+    const animeListHtml = linkedAnimes.length > 0 ? `
+      <div class="volume-list-section">
+        <h4 class="volume-list-title"><i data-lucide="tv"></i> メディア展開（アニメ）</h4>
+        <div class="volumes-accordion">
+          ${linkedAnimes.map(a => `
+            <div class="volume-row-item" style="border-color: rgba(61, 90, 254, 0.2); background: rgba(61, 90, 254, 0.02); cursor: pointer;" onclick="window.app.showAnimeDetail('${a.id}')">
+              <div class="vol-title-info">
+                <i data-lucide="play" style="color: var(--accent-blue);"></i>
+                <div>
+                  <span class="vol-title-text" style="color: #90caf9">${a.title}</span>
+                  <div class="vol-meta-info">${a.broadcastDate || '放送時期不明'} / ${a.episodes || '話数未設定'}</div>
                 </div>
               </div>
-            `).join('')}
-          </div>
+              <div class="vol-actions-area">
+                <span class="badge anime-card-badge">${this.getAnimeStatusLabel(a.status)}</span>
+                ${a.rating > 0 ? `<div class="card-rating"><i data-lucide="star"></i> ${a.rating}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
         </div>
-      `;
-    }
+      </div>
+    ` : '';
 
-    // 巻数ごとのリストHTML構築
-    const statusTextMap = { 'read': '読み終わった', 'want': '読みたい', 'reading': '読み途中', 'dropped': '読むのをやめた', 'unread': '未読' };
-    const statusColorMap = { 'read': '#34d399', 'reading': '#60a5fa', 'want': '#fbbf24', 'dropped': '#f87171', 'unread': '#9ca3af' };
     const volumesHtml = volumes.map(v => {
       const state = this.userComics[v.id] || { status: 'unread', rating: 0, review: '' };
       return `
@@ -919,12 +966,8 @@ class KiraraApp {
           <img class="vol-card-cover" src="${v.coverUrl}" onerror="this.src='https://placehold.co/100x140/1b0f33/f5f3f7?text=${encodeURIComponent(v.volume)}'">
           <div class="vol-card-info">
             <span class="vol-card-title">第${v.volume}巻</span>
-            <select class="vol-status-select" onclick="event.stopPropagation()" onchange="event.stopPropagation(); window.app.setVolumeStatus('${v.id}', this.value, '${titleName}')" style="font-size:0.65rem; background: var(--bg-secondary); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); border-radius: 4px; padding: 0.1rem 0.2rem; width: 100%; cursor: pointer;">
-              <option value="read" ${state.status === 'read' ? 'selected' : ''}>読み終わった</option>
-              <option value="reading" ${state.status === 'reading' ? 'selected' : ''}>読み途中</option>
-              <option value="want" ${state.status === 'want' ? 'selected' : ''}>読みたい</option>
-              <option value="dropped" ${state.status === 'dropped' ? 'selected' : ''}>読むのをやめた</option>
-              <option value="unread" ${state.status === 'unread' ? 'selected' : ''}>未読</option>
+            <select class="vol-status-select" onclick="event.stopPropagation()" onchange="event.stopPropagation(); window.app.setVolumeStatus('${v.id}', this.value, '${titleName}')">
+              ${this.createMangaStatusOptions(state.status)}
             </select>
           </div>
         </div>
@@ -932,86 +975,100 @@ class KiraraApp {
     }).join('');
 
     const modalHtml = `
-      <div class="modal-body">
-        <div class="detail-grid">
-          <!-- 左カラム -->
+      <div class="modal-body grouped-detail-modal">
+        <div class="detail-grid grouped-detail-grid">
           <div class="detail-left">
             <img class="detail-cover" src="${firstVol.coverUrl}" alt="${titleName}" onerror="this.src='https://placehold.co/300x420/1b0f33/f5f3f7?text=${encodeURIComponent(titleName)}'">
             <div class="detail-meta-table">
-              <div class="meta-item">
-                <span class="label">著者</span>
-                <span class="val">${firstVol.author}</span>
-              </div>
-              <div class="meta-item">
-                <span class="label">レーベル</span>
-                <span class="val">${firstVol.label}</span>
-              </div>
-              <div class="meta-item">
-                <span class="label">既刊</span>
-                <span class="val">全 ${volumes.length} 巻</span>
-              </div>
+              <div class="meta-item"><span class="label">著者</span><span class="val">${firstVol.author}</span></div>
+              <div class="meta-item"><span class="label">レーベル</span><span class="val">${firstVol.label}</span></div>
+              <div class="meta-item"><span class="label">既刊</span><span class="val">全 ${volumes.length} 巻</span></div>
             </div>
           </div>
 
-          <!-- 右カラム: 複数巻のリスト表示 -->
           <div class="detail-right">
             <span class="detail-label">${firstVol.label}</span>
             <h2 class="detail-title">${titleName}</h2>
             <div class="detail-author"><i data-lucide="user"></i> ${firstVol.author}</div>
-            
-            <div class="detail-synopsis-box">
-              <strong>作品あらすじ（第1巻より）：</strong><br>
-              ${firstVol.synopsis}
+            <div class="detail-synopsis-box"><strong>作品あらすじ（第1巻より）：</strong><br>${firstVol.synopsis}</div>
+
+            <div class="edit-form-section work-status-panel">
+              <h3 class="form-title"><i data-lucide="bookmark-check"></i> 作品全体のステータス</h3>
+              <div class="work-progress-summary">
+                <span class="badge status-${selectedStatus}"><span class="dot" style="background:${(statusDefs[selectedStatus] || statusDefs.unread).colorVar}"></span> ${this.getMangaStatusLabel(selectedStatus)}</span>
+                <strong>${progressLabel}</strong>
+                <span>${readCount}/${volumes.length}巻 読了</span>
+              </div>
+              <div class="progress-bar-wrapper large-progress"><div class="progress-bar-fill" style="width:${readPct}%"></div></div>
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label>作品ステータス</label>
+                  <div class="status-radio-group">
+                    ${this.renderMangaStatusRadios('work-status', selectedStatus)}
+                  </div>
+                </div>
+                <div class="form-group full-width">
+                  <label for="work-review">作品メモ</label>
+                  <textarea class="textarea-custom" id="work-review" placeholder="作品全体の印象や、次に読みたい巻などを記録できます。">${workState.review || ''}</textarea>
+                </div>
+              </div>
+              <div class="form-actions"><button class="btn-primary" id="btn-save-work-record"><i data-lucide="check"></i> 作品ステータスを保存</button></div>
             </div>
 
             ${animeListHtml}
-
-            <!-- 収録巻リスト -->
-            <div class="volume-list-section">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
-                <h4 class="volume-list-title" style="margin: 0;"><i data-lucide="book-open"></i> コミックス既刊一覧 (${volumes.length}巻)</h4>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <span style="font-size: 0.8rem; color: var(--text-secondary);">全巻を一括変更:</span>
-                  <select class="select-custom" id="batch-status-select" style="font-size: 0.8rem; padding: 0.3rem 1.5rem 0.3rem 0.8rem; min-width: 120px;">
-                    <option value="">-- 選択 --</option>
-                    <option value="read">読み終わった</option>
-                    <option value="reading">読み途中</option>
-                    <option value="want">読みたい</option>
-                    <option value="dropped">読むのをやめた</option>
-                    <option value="unread">未読</option>
-                  </select>
-                </div>
-              </div>
-              <div class="volumes-card-grid">
-                ${volumesHtml}
-              </div>
-            </div>
-
           </div>
+        </div>
+
+        <div class="volume-list-section full-width-volume-section">
+          <div class="section-toolbar">
+            <h4 class="volume-list-title" style="margin: 0;"><i data-lucide="book-open"></i> コミックス既刊一覧 (${volumes.length}巻)</h4>
+            <div class="batch-status-control">
+              <span>全巻を一括変更:</span>
+              <select class="select-custom" id="batch-status-select">
+                <option value="">-- 選択 --</option>
+                ${this.createMangaStatusOptions('')}
+              </select>
+            </div>
+          </div>
+          <div class="volumes-card-grid full-width-volumes-grid">${volumesHtml}</div>
         </div>
       </div>
     `;
 
     this.openModal(modalHtml);
 
+    document.getElementById('btn-save-work-record').addEventListener('click', () => {
+      const newStatus = document.querySelector('input[name="work-status"]:checked').value;
+      const review = document.getElementById('work-review').value.trim();
+      this.userMangaWorks[titleName] = { ...this.userMangaWorks[titleName], status: newStatus, review };
+      this.saveLocalStorage();
+      this.showToast(`「${titleName}」の作品ステータスを保存しました！`, 'pink');
+      this.render();
+      this.showGroupedDetail(titleName);
+    });
+
     document.getElementById('batch-status-select').addEventListener('change', (e) => {
       const newStatus = e.target.value;
       if (!newStatus) return;
-      if (confirm(`全 ${volumes.length} 巻のステータスを「${e.target.options[e.target.selectedIndex].text}」に変更しますか？`)) {
+      if (confirm(`全 ${volumes.length} 巻のステータスを「${this.getMangaStatusLabel(newStatus)}」に変更しますか？`)) {
         volumes.forEach(v => {
-          if (!this.userComics[v.id]) {
-            this.userComics[v.id] = { status: newStatus, rating: 0, review: '' };
-          } else {
-            this.userComics[v.id].status = newStatus;
-          }
+          this.userComics[v.id] = { ...(this.userComics[v.id] || { rating: 0, review: '' }), status: newStatus };
         });
         this.saveLocalStorage();
-        this.showToast(`全巻のステータスを一括更新しました！`, 'pink');
+        this.showToast('全巻のステータスを一括更新しました！', 'pink');
         this.showGroupedDetail(titleName);
       } else {
         e.target.value = '';
       }
     });
+  }
+
+  setVolumeStatus(volumeId, status, titleName = null) {
+    this.userComics[volumeId] = { ...(this.userComics[volumeId] || { rating: 0, review: '' }), status };
+    this.saveLocalStorage();
+    this.showToast('巻ごとのステータスを更新しました。', 'pink');
+    if (titleName) this.showGroupedDetail(titleName);
+    this.render();
   }
 
   // --- 手動コミックス追加・編集モーダルフォーム ---
@@ -1168,6 +1225,7 @@ class KiraraApp {
 
       this.saveLocalStorage();
       this.showToast(isEdit ? 'コミックス情報を更新しました！' : '新規コミックスを登録しました！', 'pink');
+      this.render();
       this.closeModal();
     });
 
@@ -1179,6 +1237,7 @@ class KiraraApp {
           this.comics = this.comics.filter(c => c.id !== mangaId);
           this.saveLocalStorage();
           this.showToast('コミックス情報を削除しました。', 'red');
+          this.render();
           this.closeModal();
         }
       });
@@ -1199,7 +1258,7 @@ class KiraraApp {
     }
 
     if (this.filters.status !== 'all') {
-      filteredAnime = filteredAnime.filter(a => a.status === this.filters.status);
+      filteredAnime = filteredAnime.filter(a => a.status === this.filters.status || (this.filters.status === 'reading' && a.status === 'watching'));
     }
 
     filteredAnime.sort((a, b) => {
@@ -1247,7 +1306,7 @@ class KiraraApp {
       return;
     }
 
-    const statusTextMap = { 'read': '視聴完了', 'watching': '視聴中', 'want': '見たい', 'dropped': '中断' };
+    const statusTextMap = Object.fromEntries(Object.entries(this.getAnimeStatusDefinitions()).map(([key, value]) => [key, value.label]));
 
     paginatedAnime.forEach(anime => {
       const card = document.createElement('div');
@@ -1262,6 +1321,7 @@ class KiraraApp {
         `;
       }
 
+      const animeStatusDef = this.getAnimeStatusDefinitions()[anime.status] || this.getAnimeStatusDefinitions().want;
       const watchedEps = anime.watchedEpisodes || 0;
       const totalEps = parseInt(anime.episodes) || 0;
       const epPct = totalEps > 0 ? Math.min(100, Math.round((watchedEps / totalEps) * 100)) : 0;
@@ -1278,9 +1338,9 @@ class KiraraApp {
           `}
           <div class="cover-overlay"></div>
           <div class="card-badges">
-            <span class="badge status-watching" style="${anime.status === 'read' ? 'border-color:var(--status-read);color:#34d399;' : anime.status === 'watching' ? '' : anime.status === 'dropped' ? 'border-color:var(--status-dropped);color:#f87171;' : 'border-color:var(--status-unread);color:#9ca3af;'}">
-              <span class="dot" style="background:${anime.status === 'read' ? 'var(--status-read)' : anime.status === 'watching' ? 'var(--accent-blue)' : anime.status === 'dropped' ? 'var(--status-dropped)' : 'var(--status-want)'}"></span>
-              ${statusTextMap[anime.status]}
+            <span class="badge status-${anime.status === 'watching' ? 'watching' : anime.status}" style="border-color:${animeStatusDef.colorVar};color:${animeStatusDef.colorVar};">
+              <span class="dot" style="background:${animeStatusDef.colorVar}"></span>
+              ${statusTextMap[anime.status] || statusTextMap.want}
             </span>
           </div>
         </div>
@@ -1398,19 +1458,23 @@ class KiraraApp {
               <div class="status-radio-group">
                 <div class="status-radio-btn" data-status="read">
                   <input type="radio" name="anime-status" id="ast-read" value="read" ${anime.status === 'read' ? 'checked' : ''}>
-                  <label class="status-radio-label" for="ast-read"><span class="dot" style="background:var(--accent-blue)"></span> 視聴完了</label>
+                  <label class="status-radio-label" for="ast-read"><span class="dot" style="background:var(--status-read)"></span> 視聴完了</label>
                 </div>
                 <div class="status-radio-btn" data-status="watching">
                   <input type="radio" name="anime-status" id="ast-watching" value="watching" ${anime.status === 'watching' ? 'checked' : ''}>
-                  <label class="status-radio-label" for="ast-watching"><span class="dot" style="background:cyan"></span> 視聴中</label>
+                  <label class="status-radio-label" for="ast-watching"><span class="dot" style="background:var(--accent-blue)"></span> 視聴中</label>
                 </div>
                 <div class="status-radio-btn" data-status="want">
                   <input type="radio" name="anime-status" id="ast-want" value="want" ${anime.status === 'want' ? 'checked' : ''}>
                   <label class="status-radio-label" for="ast-want"><span class="dot" style="background:var(--status-want)"></span> 見たい</label>
                 </div>
+                <div class="status-radio-btn" data-status="paused">
+                  <input type="radio" name="anime-status" id="ast-paused" value="paused" ${anime.status === 'paused' ? 'checked' : ''}>
+                  <label class="status-radio-label" for="ast-paused"><span class="dot" style="background:var(--status-paused)"></span> 中断</label>
+                </div>
                 <div class="status-radio-btn" data-status="dropped">
                   <input type="radio" name="anime-status" id="ast-dropped" value="dropped" ${anime.status === 'dropped' ? 'checked' : ''}>
-                  <label class="status-radio-label" for="ast-dropped"><span class="dot" style="background:var(--status-dropped)"></span> 中断</label>
+                  <label class="status-radio-label" for="ast-dropped"><span class="dot" style="background:var(--status-dropped)"></span> 視聴切り</label>
                 </div>
               </div>
             </div>
@@ -1510,6 +1574,7 @@ class KiraraApp {
 
       this.saveLocalStorage();
       this.showToast(isEdit ? 'アニメ情報を更新しました！' : 'アニメ情報を登録しました！', 'blue');
+      this.render();
       this.closeModal();
     });
 
@@ -1519,6 +1584,7 @@ class KiraraApp {
           this.userAnime = this.userAnime.filter(a => a.id !== animeId);
           this.saveLocalStorage();
           this.showToast('アニメ情報を削除しました。', 'red');
+          this.render();
           this.closeModal();
         }
       });
@@ -1535,7 +1601,7 @@ class KiraraApp {
         "volume": 1,
         "fullTitle": "オリジナルきらら作品　第１巻",
         "author": "きららファン",
-        "label": "まんがタイムKRコミックス",
+        "label": "KRコミックス",
         "releaseDate": "2026-05-31",
         "synopsis": "手動で追加するコミックス情報を直接JSONでインポート・バックアップするためのサンプルテンプレートです。",
         "coverUrl": "https://placehold.co/300x420",
@@ -1550,7 +1616,7 @@ class KiraraApp {
         <div class="settings-card fade-in">
           <h3 class="settings-card-title"><i data-lucide="database"></i> ユーザーデータのバックアップと移行</h3>
           <p class="settings-desc">
-            これまで記録したコミックスの読書状態、星評価、感想、手動で追加したコミックス情報、およびアニメ情報を含む<strong>すべてのデータ</strong>をエクスポートしたり、以前バックアップしたファイルをインポートすることができます。
+            これまで記録したコミックスの巻別読書状態、作品単位ステータス、星評価、感想、手動で追加したコミックス情報、およびアニメ情報を含む<strong>すべてのデータ</strong>をエクスポートしたり、以前バックアップしたファイルをインポートすることができます。
           </p>
           <div class="settings-actions">
             <button class="btn-primary" id="btn-export-data"><i data-lucide="download"></i> マイデータをエクスポート (JSON)</button>
@@ -1608,6 +1674,7 @@ class KiraraApp {
       version: "1.0",
       exportDate: new Date().toISOString(),
       userComics: this.userComics,
+      userMangaWorks: this.userMangaWorks,
       userAnime: this.userAnime,
       userCustomComics: this.userCustomComics,
       comics: this.comics
@@ -1637,7 +1704,7 @@ class KiraraApp {
       try {
         const imported = JSON.parse(e.target.result);
         
-        if (imported.userComics || imported.userAnime || imported.userCustomComics || Array.isArray(imported)) {
+        if (imported.userComics || imported.userMangaWorks || imported.userAnime || imported.userCustomComics || Array.isArray(imported)) {
           
           if (Array.isArray(imported)) {
             // コミックス情報リストの場合 (手動追加に合算)
@@ -1655,6 +1722,7 @@ class KiraraApp {
           } else {
             // フルバックアップ形式の場合
             if (imported.userComics) this.userComics = { ...this.userComics, ...imported.userComics };
+            if (imported.userMangaWorks) this.userMangaWorks = { ...this.userMangaWorks, ...imported.userMangaWorks };
             
             if (imported.userAnime) {
               const existingAnimeIds = new Set(this.userAnime.map(a => a.id));
@@ -1692,6 +1760,7 @@ class KiraraApp {
     if (confirm('【警告】すべての読書記録、評価、感想、追加した手動マンガ・アニメ作品情報が完全に削除されます。よろしいですか？')) {
       if (confirm('本当に削除しますか？この操作は取り消せません。')) {
         this.userComics = {};
+        this.userMangaWorks = {};
         this.userAnime = [];
         this.userCustomComics = [];
         this.saveLocalStorage();
@@ -1874,10 +1943,10 @@ class KiraraApp {
           <img class="vol-card-cover" src="${v.coverUrl}" onerror="this.src='https://placehold.co/100x140/1b0f33/f5f3f7?text=${encodeURIComponent(v.title)}'">
           <div class="vol-card-info">
             <span class="vol-card-title">${v.fullTitle}</span>
-            <span class="vol-card-badge" style="color:#60a5fa;">読み途中</span>
+            <span class="vol-card-badge" style="color:#60a5fa;">読書中</span>
           </div>
         </div>
-    `).join('') : '<p style="color: var(--text-muted); font-size: 0.9rem;">現在読み途中の作品はありません。</p>';
+    `).join('') : '<p style="color: var(--text-muted); font-size: 0.9rem;">現在読書中の作品はありません。</p>';
 
     const watchingAnime = this.userAnime.filter(a => a.status === 'watching').slice(0, 5);
     const watchingAnimeHtml = watchingAnime.length > 0 ? watchingAnime.map(a => `
@@ -1916,7 +1985,7 @@ class KiraraApp {
           <h3 class="home-section-title"><i data-lucide="play-circle"></i> 現在楽しんでいる作品</h3>
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             <div>
-              <h4 style="margin-bottom: 0.5rem; font-size: 1rem;"><i data-lucide="book"></i> コミックス (読み途中)</h4>
+              <h4 style="margin-bottom: 0.5rem; font-size: 1rem;"><i data-lucide="book"></i> コミックス (読書中)</h4>
               <div class="volumes-card-grid" style="grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));">
                 ${readingMangaHtml}
               </div>
