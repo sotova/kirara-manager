@@ -26,7 +26,8 @@
   /* ステータスカラー */
   --status-read: #10b981;       /* 🟢 読んだ */
   --status-want: #f59e0b;       /* 🟡 読みたい */
-  --status-dropped: #ef4444;    /* 🔴 続かなかった */
+  --status-dropped: #ef4444;    /* 🔴 読書切り */
+  --status-paused: #a855f7;      /* 🟣 中断 */
   --status-unread: #6b7280;     /* ⚪ 未読 */
 
   /* シャドウ */
@@ -972,6 +973,7 @@ main {
 
 .status-radio-btn[data-status="read"] input:checked + .status-radio-label { background: rgba(16, 185, 129, 0.15); border-color: var(--status-read); color: #34d399; }
 .status-radio-btn[data-status="want"] input:checked + .status-radio-label { background: rgba(245, 158, 11, 0.15); border-color: var(--status-want); color: #fbbf24; }
+.status-radio-btn[data-status="paused"] input:checked + .status-radio-label { background: rgba(168, 85, 247, 0.15); border-color: var(--status-paused); color: #c084fc; }
 .status-radio-btn[data-status="dropped"] input:checked + .status-radio-label { background: rgba(239, 68, 68, 0.15); border-color: var(--status-dropped); color: #f87171; }
 .status-radio-btn[data-status="unread"] input:checked + .status-radio-label { background: rgba(107, 114, 128, 0.15); border-color: var(--status-unread); color: #9ca3af; }
 
@@ -1237,6 +1239,7 @@ body.light-theme {
   --status-read: #0a8a55;
   --status-want: #b05a00;
   --status-dropped: #b02020;
+  --status-paused: #7c3aed;
   --status-unread: #505870;
 
   --shadow-glow: 0 0 15px rgba(194, 0, 106, 0.25);
@@ -1273,6 +1276,7 @@ body.light-theme .badge {
 body.light-theme .badge.status-read { background: rgba(10,138,85,0.1); border-color: var(--status-read); color: #0a8a55; }
 body.light-theme .badge.status-want { background: rgba(176,90,0,0.1); border-color: var(--status-want); color: #b05a00; }
 body.light-theme .badge.status-reading, body.light-theme .badge.status-watching { background: rgba(26,69,212,0.1); border-color: var(--accent-blue); color: var(--accent-blue); }
+body.light-theme .badge.status-paused { background: rgba(124,58,237,0.1); border-color: var(--status-paused); color: #7c3aed; }
 body.light-theme .badge.status-dropped { background: rgba(176,32,32,0.1); border-color: var(--status-dropped); color: #b02020; }
 body.light-theme .badge.status-unread { background: rgba(80,88,112,0.08); color: var(--status-unread); }
 body.light-theme .badge.volume-count { background: var(--accent-gradient); color: white; border-color: transparent; }
@@ -1303,6 +1307,7 @@ body.light-theme .status-tag-btn:hover { background: rgba(200,180,240,0.5); colo
 body.light-theme .status-tag-btn.active[data-status="read"] { background: rgba(10,138,85,0.15); border-color: var(--status-read); color: #0a8a55; }
 body.light-theme .status-tag-btn.active[data-status="want"] { background: rgba(176,90,0,0.15); border-color: var(--status-want); color: #b05a00; }
 body.light-theme .status-tag-btn.active[data-status="reading"] { background: rgba(26,69,212,0.15); border-color: var(--accent-blue); color: var(--accent-blue); }
+body.light-theme .status-tag-btn.active[data-status="paused"] { background: rgba(124,58,237,0.15); border-color: var(--status-paused); color: #7c3aed; }
 body.light-theme .status-tag-btn.active[data-status="dropped"] { background: rgba(176,32,32,0.15); border-color: var(--status-dropped); color: #b02020; }
 body.light-theme .status-tag-btn.active[data-status="unread"] { background: rgba(80,88,112,0.12); border-color: var(--status-unread); color: var(--status-unread); }
 body.light-theme .modal-wrapper {
@@ -1355,6 +1360,9 @@ body.light-theme .home-section-title { color: var(--accent-pink); }
 
 /* --- 追加ステータス（読み途中等） --- */
 .badge.status-reading, .badge.status-watching { border-color: var(--accent-blue); color: #60a5fa; }
+.badge.status-paused { border-color: var(--status-paused); color: #c084fc; }
+.status-tag-btn.active[data-status="paused"] { background: rgba(168, 85, 247, 0.15); border-color: var(--status-paused); color: #c084fc; }
+.status-tag-btn[data-status="paused"] .dot { background: var(--status-paused); }
 .status-tag-btn.active[data-status="reading"], .status-tag-btn.active[data-status="watching"] { background: rgba(61, 90, 254, 0.15); border-color: var(--accent-blue); color: #93c5fd; }
 .status-tag-btn[data-status="reading"] .dot, .status-tag-btn[data-status="watching"] .dot { background: var(--accent-blue); }
 
@@ -1491,4 +1499,87 @@ body.light-theme .home-section-title { color: var(--accent-pink); }
   padding: 0.2rem 0.5rem;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.1);
+}
+
+
+/* --- 作品単位ステータス / 全幅既刊一覧 --- */
+.grouped-detail-modal {
+  max-width: min(1180px, 96vw);
+  margin: 0 auto;
+}
+
+.grouped-detail-grid {
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+}
+
+.work-status-panel {
+  margin-top: 1rem;
+}
+
+.work-progress-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.large-progress {
+  height: 12px;
+}
+
+.full-width-volume-section {
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.section-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.batch-status-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.full-width-volumes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+}
+
+.vol-status-select {
+  width: 100%;
+  cursor: pointer;
+  font-size: 0.72rem;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 0.25rem 0.35rem;
+}
+
+body.light-theme .vol-status-select {
+  background: rgba(255,255,255,0.75);
+  border-color: rgba(100,50,180,0.16);
+  color: var(--text-primary);
+}
+
+@media (max-width: 760px) {
+  .grouped-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-status-control {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
