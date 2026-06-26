@@ -192,9 +192,27 @@ class KiraraApp {
     }
   }
 
-  // 手動追加コミックスデータをセットする（初期プリセットデータは廃止）
+  // スクレイピング済みJSONと手動追加コミックスデータを読み込む
   async loadComicsData() {
-    this.comics = [...this.userCustomComics];
+    let scrapedComics = [];
+    try {
+      const response = await fetch('kirara_data.json', { cache: 'no-store' });
+      if (response.ok) {
+        scrapedComics = await response.json();
+      } else {
+        console.warn('kirara_data.json が見つかりません。手動追加データのみで起動します。');
+      }
+    } catch (e) {
+      console.warn('kirara_data.json の読み込みに失敗しました。ローカルファイルで開いている場合は、手動追加データのみ表示します。', e);
+    }
+
+    const comicsById = new Map();
+    [...scrapedComics, ...this.userCustomComics].forEach((comic) => {
+      if (!comic) return;
+      const key = comic.id || comic.cid || `${comic.title}_${comic.volume}_${comic.releaseDate}`;
+      comicsById.set(key, comic);
+    });
+    this.comics = Array.from(comicsById.values());
   }
 
   // DOM要素のキャッシュ
